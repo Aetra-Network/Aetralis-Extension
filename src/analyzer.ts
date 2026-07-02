@@ -8,6 +8,8 @@ import {
   controlKeywords,
   createMessageFields,
   declarationKeywords,
+  metadataKeywords,
+  bounceModeMembers,
   makeSet,
   memberCompletions,
   reservedHandlerNames
@@ -17,8 +19,10 @@ const IMPLICIT_NAMES = new Set(["state", "contract", "msg", "self", "this", "in"
 
 const DECLARATION_KEYWORDS: Set<string> = makeSet(declarationKeywords as readonly string[]);
 const CONTROL_KEYWORDS: Set<string> = makeSet(controlKeywords as readonly string[]);
+const METADATA_KEYWORDS: Set<string> = makeSet(metadataKeywords as readonly string[]);
 const BUILTINS: Set<string> = makeSet(builtins as readonly string[]);
 const BUILTIN_CONSTANTS: Set<string> = makeSet(builtinConstants as readonly string[]);
+const BOUNCE_MODE_MEMBERS: Set<string> = makeSet(bounceModeMembers as readonly string[]);
 const BUILTIN_TYPES: Set<string> = makeSet(builtinTypes as readonly string[]);
 
 const ANNOTATION_ORDER = annotationNames;
@@ -47,6 +51,7 @@ export const SEMANTIC_TOKEN_TYPES = [
   "storageKeyword",
   "assertKeyword",
   "controlKeyword",
+  "metadataKeyword",
   "type",
   "contractName",
   "functionKeyword",
@@ -151,6 +156,7 @@ export function getCompletionItems(analysis: any, position: any) {
   const items = [];
   items.push(...makeCompletionItems([...DECLARATION_KEYWORDS], "Keyword", prefix, "Declaration keyword"));
   items.push(...makeCompletionItems([...CONTROL_KEYWORDS], "Keyword", prefix, "Control keyword"));
+  items.push(...makeCompletionItems([...METADATA_KEYWORDS], "Keyword", prefix, "Contract metadata"));
   items.push(...makeCompletionItems([...analysis.lookup.byName.values()], null, prefix, null, true));
 
   return dedupeCompletionItems(items);
@@ -201,7 +207,7 @@ function semanticTypeForToken(token: any, lookup: any, tokens: any, index: numbe
     return "operator";
   }
   if (token.kind === "keyword") {
-    if (DECLARATION_KEYWORDS.has(token.text)) {
+  if (DECLARATION_KEYWORDS.has(token.text)) {
       if (token.text === "contract") {
         return "contractKeyword";
       }
@@ -225,6 +231,9 @@ function semanticTypeForToken(token: any, lookup: any, tokens: any, index: numbe
       }
       return "controlKeyword";
     }
+    if (METADATA_KEYWORDS.has(token.text)) {
+      return "metadataKeyword";
+    }
     return "controlKeyword";
   }
   if (token.kind !== "identifier") {
@@ -234,6 +243,9 @@ function semanticTypeForToken(token: any, lookup: any, tokens: any, index: numbe
     return "builtin";
   }
   if (BUILTIN_CONSTANTS.has(token.text)) {
+    return "constant";
+  }
+  if (BOUNCE_MODE_MEMBERS.has(token.text)) {
     return "constant";
   }
   if (lookup.contractNames && lookup.contractNames.has(token.text)) {
@@ -860,8 +872,10 @@ function findUnknownIdentifiers(tokens: any[], lookup: any) {
   const known = new Set([
     ...DECLARATION_KEYWORDS,
     ...CONTROL_KEYWORDS,
+    ...METADATA_KEYWORDS,
     ...BUILTINS,
     ...BUILTIN_CONSTANTS,
+    ...BOUNCE_MODE_MEMBERS,
     ...BUILTIN_TYPES,
     ...IMPLICIT_NAMES,
     ...lookup.allNames
@@ -996,10 +1010,16 @@ function classifyWord(word: string) {
   if (DECLARATION_KEYWORDS.has(word) || CONTROL_KEYWORDS.has(word)) {
     return "keyword";
   }
+  if (METADATA_KEYWORDS.has(word)) {
+    return "keyword";
+  }
   if (BUILTINS.has(word)) {
     return "builtin";
   }
   if (BUILTIN_CONSTANTS.has(word)) {
+    return "constant";
+  }
+  if (BOUNCE_MODE_MEMBERS.has(word)) {
     return "constant";
   }
   if (BUILTIN_TYPES.has(word)) {
@@ -1024,6 +1044,18 @@ function keywordHelp(word: string) {
         return "Declares a function.";
       default:
         return "Declaration keyword.";
+    }
+  }
+  if (METADATA_KEYWORDS.has(word)) {
+    switch (word) {
+      case "author":
+        return "Contract author metadata.";
+      case "description":
+        return "Contract description metadata.";
+      case "version":
+        return "Contract version metadata.";
+      default:
+        return "Metadata keyword.";
     }
   }
   if (CONTROL_KEYWORDS.has(word)) {

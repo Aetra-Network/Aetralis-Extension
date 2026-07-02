@@ -1,18 +1,8 @@
 export const declarationKeywords = ["const", "type", "struct", "contract", "func"] as const;
 
-export const controlKeywords = [
-  "if",
-  "else",
-  "match",
-  "case",
-  "return",
-  "assert",
-  "throw",
-  "lazy",
-  "mutate",
-  "var",
-  "val"
-] as const;
+export const controlKeywords = ["if", "else", "match", "return", "assert", "throw", "lazy", "mutate", "var", "val"] as const;
+
+export const metadataKeywords = ["author", "description", "version"] as const;
 
 export const annotationNames = [
   "@storage",
@@ -21,7 +11,6 @@ export const annotationNames = [
   "@external",
   "@bounced",
   "@get",
-  "@pure",
   "@impure",
   "@store"
 ] as const;
@@ -33,7 +22,6 @@ export const annotationDetails = new Map<string, string>([
   ["@external", "Marks an external message handler."],
   ["@bounced", "Marks a bounced message handler."],
   ["@get", "Marks a read-only getter."],
-  ["@pure", "Marks a helper that only computes a result."],
   ["@impure", "Marks a function that may change chain-visible state."],
   ["@store", "Legacy storage helper annotation."]
 ]);
@@ -56,7 +44,6 @@ export const builtins = [
   "getBalance",
   "random",
   "createMessage",
-  "commit",
   "skipBouncedPrefix",
   "fromSegment",
   "fromChunk",
@@ -65,24 +52,9 @@ export const builtins = [
   "send"
 ] as const;
 
-export const builtinConstants = [
-  "SEND_DEFAULT",
-  "SEND_CARRY_REMAINDER",
-  "SEND_DRAIN_BALANCE",
-  "SEND_ESTIMATE_ONLY",
-  "SEND_FEE_FROM_BALANCE",
-  "SEND_IGNORE_ERRORS",
-  "SEND_BOUNCE_ON_FAIL",
-  "SEND_DESTROY_IF_EMPTY",
-  "SEND_MODE_REGULAR",
-  "SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE",
-  "SEND_MODE_CARRY_ALL_BALANCE",
-  "SEND_MODE_ESTIMATE_FEE_ONLY",
-  "SEND_MODE_PAY_FEES_SEPARATELY",
-  "SEND_MODE_IGNORE_ERRORS",
-  "SEND_MODE_BOUNCE_ON_ACTION_FAIL",
-  "SEND_MODE_DESTROY"
-] as const;
+export const builtinConstants = ["SEND_BOUNCE_ON_FAIL", "SEND_FEE_FROM_BALANCE"] as const;
+
+export const bounceModeMembers = ["Only256BitsOfBody", "NoBounce"] as const;
 
 export const memberCompletions: Record<string, Array<{ label: string; detail: string }>> = {
   contract: [
@@ -92,15 +64,11 @@ export const memberCompletions: Record<string, Array<{ label: string; detail: st
   in: [
     { label: "body", detail: "in.body" },
     { label: "senderAddress", detail: "in.senderAddress" },
-    { label: "originalForwardFee", detail: "in.originalForwardFee" },
-    { label: "valueCoins", detail: "in.valueCoins" },
     { label: "bouncedBody", detail: "in.bouncedBody" }
   ],
   body: [
     { label: "isEmpty", detail: "body.isEmpty()" },
-    { label: "skipBouncedPrefix", detail: "body.skipBouncedPrefix()" },
-    { label: "fromSegment", detail: "body.fromSegment(...)" },
-    { label: "fromChunk", detail: "body.fromChunk(...)" }
+    { label: "skipBouncedPrefix", detail: "body.skipBouncedPrefix()" }
   ],
   bouncedBody: [
     { label: "isEmpty", detail: "bouncedBody.isEmpty()" },
