@@ -3,7 +3,7 @@
   "displayName": "Aetralis Language",
   "description": "Language extension for Aetralis smart contract development on the Aetra blockchain.",
   "version": "0.1.0",
-  "publisher": "aetra",
+  "publisher": "softwaremaestro",
   "repository": {
     "type": "git",
     "url": "https://github.com/Aetra-Network/Aetralis-Extension.git"

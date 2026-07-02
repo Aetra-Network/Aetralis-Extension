@@ -151,6 +151,10 @@ function toCompletionItem(item) {
   const completion = new vscode.CompletionItem(item.label, completionKindFromName(item.kind));
   completion.detail = item.detail || "";
   completion.sortText = item.sortText;
+  if (item.insertText) {
+    completion.insertText = new vscode.SnippetString(item.insertText);
+    completion.insertTextRules = vscode.CompletionItemInsertTextRule.InsertAsSnippet;
+  }
   return completion;
 }
 
@@ -182,8 +186,6 @@ function symbolKindFromName(kind) {
       return vscode.SymbolKind.Event;
     case "Field":
       return vscode.SymbolKind.Field;
-    case "EnumMember":
-      return vscode.SymbolKind.EnumMember;
     case "Variable":
       return vscode.SymbolKind.Variable;
     case "Parameter":
@@ -205,8 +207,8 @@ function completionKindFromName(kind) {
       return vscode.CompletionItemKind.Value;
     case "Field":
       return vscode.CompletionItemKind.Field;
-    case "EnumMember":
-      return vscode.CompletionItemKind.EnumMember;
+    case "Snippet":
+      return vscode.CompletionItemKind.Snippet;
     case "Function":
       return vscode.CompletionItemKind.Function;
     case "TypeParameter":

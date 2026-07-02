@@ -16,19 +16,21 @@
   "semanticTokenColors": {
     "comment": "#5d6f8e",
     "string": "#b7e59e",
-    "annotation": "#34d1d1",
-    "declarationKeyword": "#ff8b6b",
+    "annotation": "#41d7d1",
+    "contractKeyword": "#8ab4ff",
+    "typeKeyword": "#ffb86b",
+    "storageKeyword": "#c792ea",
+    "assertKeyword": "#c792ea",
     "controlKeyword": "#58a6ff",
-    "messageKind": "#f1b761",
-    "purityKeyword": "#8fe388",
-    "surfaceKey": "#7bdfff",
+    "type": "#8dff9f",
+    "contractName": "#9bd8ff",
+    "functionKeyword": "#ff9f6e",
     "builtin": "#ffd166",
-    "type": "#9bd8ff",
     "function": "#f4c96b",
     "parameter": "#b8f39b",
     "variable": "#c8f1b9",
     "property": "#8fd3c7",
-    "enumMember": "#69e2ff",
+    "messageName": "#8dff9f",
     "constant": "#ffd27a",
     "number": "#ffd27a",
     "operator": "#9bb0d8"
@@ -63,15 +65,12 @@
         "storage.type.annotation"
       ],
       "settings": {
-        "foreground": "#34d1d1"
+        "foreground": "#41d7d1"
       }
     },
     {
       "scope": [
-        "entity.name.type.contract.atlx",
-        "entity.name.type.struct.atlx",
-        "entity.name.type.enum.atlx",
-        "entity.name.type.event.atlx"
+        "entity.name.type.contract.atlx"
       ],
       "settings": {
         "foreground": "#9bd8ff"
@@ -79,10 +78,17 @@
     },
     {
       "scope": [
-        "entity.name.function.atlx",
-        "entity.name.function.message.atlx",
-        "entity.name.function.getter.atlx",
-        "entity.name.function.wallet-action.atlx"
+        "entity.name.type.struct.atlx",
+        "entity.name.type.alias.atlx",
+        "storage.type.builtin.atlx"
+      ],
+      "settings": {
+        "foreground": "#8dff9f"
+      }
+    },
+    {
+      "scope": [
+        "entity.name.function.atlx"
       ],
       "settings": {
         "foreground": "#f4c96b"
@@ -90,10 +96,35 @@
     },
     {
       "scope": [
-        "keyword.other.declaration.atlx"
+        "keyword.declaration.contract.atlx"
       ],
       "settings": {
-        "foreground": "#ff8b6b"
+        "foreground": "#8ab4ff"
+      }
+    },
+    {
+      "scope": [
+        "keyword.declaration.type.atlx"
+      ],
+      "settings": {
+        "foreground": "#ffb86b"
+      }
+    },
+    {
+      "scope": [
+        "keyword.declaration.storage.atlx",
+        "keyword.control.assert.atlx"
+      ],
+      "settings": {
+        "foreground": "#c792ea"
+      }
+    },
+    {
+      "scope": [
+        "keyword.declaration.function.atlx"
+      ],
+      "settings": {
+        "foreground": "#ff9f6e"
       }
     },
     {
@@ -106,26 +137,10 @@
     },
     {
       "scope": [
-        "keyword.other.message-kind.atlx"
+        "keyword.other.metadata.atlx"
       ],
       "settings": {
-        "foreground": "#f1b761"
-      }
-    },
-    {
-      "scope": [
-        "keyword.other.purity.atlx"
-      ],
-      "settings": {
-        "foreground": "#8fe388"
-      }
-    },
-    {
-      "scope": [
-        "keyword.other.surface-key.atlx"
-      ],
-      "settings": {
-        "foreground": "#7bdfff"
+        "foreground": "#8fd3c7"
       }
     },
     {
@@ -134,14 +149,6 @@
       ],
       "settings": {
         "foreground": "#ffd166"
-      }
-    },
-    {
-      "scope": [
-        "storage.type.builtin.atlx"
-      ],
-      "settings": {
-        "foreground": "#9bd8ff"
       }
     },
     {

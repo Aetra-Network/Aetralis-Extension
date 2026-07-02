@@ -3,15 +3,15 @@
 const {
   declarationKeywords,
   controlKeywords,
-  messageKinds,
-  purityKeywords,
-  surfaceKeys,
+  annotationNames,
+  annotationDetails,
   builtins,
   builtinConstants,
   builtinTypes,
   memberCompletions,
-  annotationNames,
-  annotationDetails,
+  createMessageFields,
+  annotationTemplates,
+  reservedHandlerNames,
   makeSet
 } = require("./language-data");
 
@@ -19,9 +19,7 @@ const IMPLICIT_NAMES = new Set(["state", "contract", "msg", "self", "this", "in"
 
 const DECLARATION_KEYWORDS = makeSet(declarationKeywords);
 const CONTROL_KEYWORDS = makeSet(controlKeywords);
-const MESSAGE_KINDS = makeSet(messageKinds);
-const PURITY_KEYWORDS = makeSet(purityKeywords);
-const SURFACE_KEYS = makeSet(surfaceKeys);
+const LEGACY_IDENTIFIERS = new Set(["fun"]);
 const BUILTINS = makeSet(builtins);
 const BUILTIN_CONSTANTS = makeSet(builtinConstants);
 const BUILTIN_TYPES = makeSet(builtinTypes);
@@ -43,35 +41,24 @@ const BUILTIN_HELP = {
   send: "Sends a message or dispatches an action."
 };
 
-const SURFACE_KEY_HELP = {
-  author: "Contract metadata field.",
-  description: "Contract metadata field.",
-  version: "Contract metadata field.",
-  title: "Wallet action metadata field.",
-  risk: "Wallet action metadata field.",
-  confirm_label: "Wallet action metadata field.",
-  warning_level: "Wallet action metadata field.",
-  expected_side_effects: "Wallet action metadata field.",
-  fund_access: "Wallet action metadata field.",
-  approval_semantics: "Wallet action metadata field."
-};
-
 const SEMANTIC_TOKEN_TYPES = [
   "comment",
   "string",
   "annotation",
-  "declarationKeyword",
+  "contractKeyword",
+  "typeKeyword",
+  "storageKeyword",
+  "assertKeyword",
   "controlKeyword",
-  "messageKind",
-  "purityKeyword",
-  "surfaceKey",
-  "builtin",
   "type",
+  "contractName",
+  "functionKeyword",
+  "messageName",
+  "builtin",
   "function",
   "parameter",
   "variable",
   "property",
-  "enumMember",
   "constant",
   "number",
   "operator"
@@ -84,7 +71,7 @@ function analyzeDocument(text) {
   const extracted = extractSymbols(masked, lineStarts);
   const symbols = extracted.symbols;
   const lookup = extracted.lookup || buildLookup(symbols);
-  const diagnostics = [...scan.diagnostics, ...findUnknownIdentifiers(scan.tokens, lookup)];
+  const diagnostics = [...scan.diagnostics, ...(extracted.diagnostics || []), ...findUnknownIdentifiers(scan.tokens, lookup)];
 
   return {
     text,
@@ -123,10 +110,6 @@ function getHoverMarkdown(analysis, position) {
     return `**${token.text}**  \n${BUILTIN_HELP[token.text] || "Built-in runtime helper."}`;
   }
 
-  if (token.kind === "surfaceKey") {
-    return `**${token.text}**  \n${SURFACE_KEY_HELP[token.text] || "Metadata key."}`;
-  }
-
   if (token.kind === "constant" && BUILTIN_CONSTANTS.has(token.text)) {
     return `**${token.text}**  \nBuilt-in send mode constant.`;
   }
@@ -147,6 +130,7 @@ function getCompletionItems(analysis, position) {
   const prefix = getPrefixAtPosition(analysis.text, position);
   const lineText = getLineText(analysis.text, analysis.lineStarts, position.line);
   const beforeCursor = lineText.slice(0, position.character);
+  const textBeforeCursor = analysis.text.slice(0, positionToOffset(analysis.lineStarts, position));
   const token = tokenAtPosition(analysis.tokens, position, analysis.lineStarts);
 
   if (token && (token.kind === "comment" || token.kind === "string")) {
@@ -158,23 +142,18 @@ function getCompletionItems(analysis, position) {
     return dedupeCompletionItems(memberItems);
   }
 
-  if (/(@|@[A-Za-z_][A-Za-z0-9_]*)$/.test(beforeCursor)) {
-    return makeCompletionItems(ANNOTATION_ORDER, "Keyword", prefix, "Aetralis annotation");
+  const createMessageItems = createMessageCompletionItems(textBeforeCursor, prefix);
+  if (createMessageItems.length) {
+    return dedupeCompletionItems(createMessageItems);
   }
 
-  if (/\bmessage\s+$/.test(beforeCursor)) {
-    return makeCompletionItems([...MESSAGE_KINDS], "EnumMember", prefix, "Message kind");
+  if (/@$/.test(beforeCursor) || /@[A-Za-z_][A-Za-z0-9_]*$/.test(beforeCursor)) {
+    return annotationCompletionItems(prefix);
   }
 
   const items = [];
   items.push(...makeCompletionItems([...DECLARATION_KEYWORDS], "Keyword", prefix, "Declaration keyword"));
   items.push(...makeCompletionItems([...CONTROL_KEYWORDS], "Keyword", prefix, "Control keyword"));
-  items.push(...makeCompletionItems([...MESSAGE_KINDS], "EnumMember", prefix, "Message kind"));
-  items.push(...makeCompletionItems([...PURITY_KEYWORDS], "Keyword", prefix, "Purity keyword"));
-  items.push(...makeCompletionItems([...SURFACE_KEYS], "Keyword", prefix, "Metadata key"));
-  items.push(...makeCompletionItems([...BUILTINS], "Function", prefix, "Built-in helper"));
-  items.push(...makeCompletionItems([...BUILTIN_CONSTANTS], "Constant", prefix, "Built-in constant"));
-  items.push(...makeCompletionItems([...BUILTIN_TYPES], "TypeParameter", prefix, "Type"));
   items.push(...makeCompletionItems([...analysis.lookup.byName.values()], null, prefix, null, true));
 
   return dedupeCompletionItems(items);
@@ -226,27 +205,30 @@ function semanticTypeForToken(token, lookup, tokens, index) {
   }
   if (token.kind === "keyword") {
     if (DECLARATION_KEYWORDS.has(token.text)) {
-      return "declarationKeyword";
+      if (token.text === "contract") {
+        return "contractKeyword";
+      }
+      if (token.text === "type") {
+        return "typeKeyword";
+      }
+      if (token.text === "struct") {
+        return "typeKeyword";
+      }
+      if (token.text === "func") {
+        return "functionKeyword";
+      }
+      if (token.text === "const" || token.text === "var" || token.text === "val") {
+        return "storageKeyword";
+      }
+      return "storageKeyword";
     }
     if (CONTROL_KEYWORDS.has(token.text)) {
+      if (token.text === "assert") {
+        return "assertKeyword";
+      }
       return "controlKeyword";
     }
-    if (MESSAGE_KINDS.has(token.text)) {
-      return "messageKind";
-    }
-    if (PURITY_KEYWORDS.has(token.text)) {
-      return "purityKeyword";
-    }
-    if (SURFACE_KEYS.has(token.text)) {
-      return "surfaceKey";
-    }
-    if (token.text === "true" || token.text === "false" || token.text === "null") {
-      return "constant";
-    }
     return "controlKeyword";
-  }
-  if (token.kind === "surfaceKey") {
-    return "surfaceKey";
   }
   if (token.kind !== "identifier") {
     return null;
@@ -256,6 +238,9 @@ function semanticTypeForToken(token, lookup, tokens, index) {
   }
   if (BUILTIN_CONSTANTS.has(token.text)) {
     return "constant";
+  }
+  if (lookup.contractNames && lookup.contractNames.has(token.text)) {
+    return "contractName";
   }
   if (lookup.typeNames.has(token.text) || BUILTIN_TYPES.has(token.text)) {
     return "type";
@@ -272,14 +257,8 @@ function semanticTypeForToken(token, lookup, tokens, index) {
   if (lookup.fields.has(token.text)) {
     return "property";
   }
-  if (lookup.enumMembers.has(token.text)) {
-    return "enumMember";
-  }
   if (lookup.constantNames.has(token.text)) {
     return "constant";
-  }
-  if (SURFACE_KEYS.has(token.text)) {
-    return "surfaceKey";
   }
   if (IMPLICIT_NAMES.has(token.text)) {
     return "variable";
@@ -604,14 +583,15 @@ function maskNonCode(text) {
 
 function extractSymbols(masked, lineStarts) {
   const symbols = [];
+  const diagnostics = [];
   const lookup = {
     byName: new Map(),
+    contractNames: new Set(),
     typeNames: new Set(),
     functionNames: new Set(),
     parameterNames: new Set(),
     variableNames: new Set(),
     fields: new Set(),
-    enumMembers: new Set(),
     constantNames: new Set(),
     allNames: new Set()
   };
@@ -625,6 +605,8 @@ function extractSymbols(masked, lineStarts) {
     lookup.allNames.add(name);
     switch (kind) {
       case "Class":
+        lookup.contractNames.add(name);
+        break;
       case "Type":
         lookup.typeNames.add(name);
         break;
@@ -641,14 +623,25 @@ function extractSymbols(masked, lineStarts) {
       case "Field":
         lookup.fields.add(name);
         break;
-      case "EnumMember":
-        lookup.enumMembers.add(name);
-        break;
       case "Constant":
         lookup.constantNames.add(name);
         break;
       default:
         break;
+    }
+
+    if (isReservedSymbolName(name)) {
+      const label = containerName ? `${containerName}.${name}` : name;
+      const reserved = reservedHandlerNames[name];
+      const message = reserved
+        ? `Reserved name "${label}" is only allowed for ${reserved.annotation}.`
+        : `Keyword "${name}" cannot be used as an identifier.`;
+      diagnostics.push({
+        severity: "error",
+        code: "E_RESERVED_IDENTIFIER",
+        message,
+        range
+      });
     }
   };
 
@@ -673,54 +666,18 @@ function extractSymbols(masked, lineStarts) {
     },
     {
       pattern: /(?:^|\n)\s*struct\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{([\s\S]*?)\}/g,
-      kind: "Class",
+      kind: "Type",
       nameGroup: 1,
       detail: () => "struct",
       bodyGroup: 2
     },
     {
-      pattern: /(?:^|\n)\s*enum\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{([\s\S]*?)\}/g,
-      kind: "Class",
-      nameGroup: 1,
-      detail: () => "enum",
-      bodyGroup: 2
-    },
-    {
-      pattern: /(?:^|\n)\s*(?:@[A-Za-z_][A-Za-z0-9_]*(?:\([^)]*\))?\s*)*(?:fn|fun)\s+(?:(?:[A-Za-z_][A-Za-z0-9_]*)\.)?([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*(?:->\s*([^{\n]+))?/g,
+      pattern: /(?:^|\n)\s*(?:@[A-Za-z_][A-Za-z0-9_]*(?:\([^)]*\))?\s*)*(?:func|fun)\s+(?:(?:[A-Za-z_][A-Za-z0-9_]*)\.)?([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*(?:->\s*([^{\n]+))?/g,
       kind: "Function",
       nameGroup: 1,
       paramsGroup: 2,
       returnGroup: 3,
-      detail: (match) => signatureText("fn", match[1], match[2] || "", (match[3] || "").trim())
-    },
-    {
-      pattern: /(?:^|\n)\s*(?:@[A-Za-z_][A-Za-z0-9_]*(?:\([^)]*\))?\s*)*message\s+(external|internal|bounced)\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*(?:->\s*([^{\n]+))?/g,
-      kind: "Function",
-      nameGroup: 2,
-      paramsGroup: 3,
-      returnGroup: 4,
-      detail: (match) => `message ${match[1]}${match[3].trim() ? `(${match[3].trim()})` : ""}${match[4] ? ` -> ${match[4].trim()}` : ""}`
-    },
-    {
-      pattern: /(?:^|\n)\s*(?:@[A-Za-z_][A-Za-z0-9_]*(?:\([^)]*\))?\s*)*getter\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*->\s*([^{\n]+)/g,
-      kind: "Function",
-      nameGroup: 1,
-      paramsGroup: 2,
-      returnGroup: 3,
-      detail: (match) => `getter(${match[2].trim()}) -> ${match[3].trim()}`
-    },
-    {
-      pattern: /(?:^|\n)\s*event\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)/g,
-      kind: "Function",
-      nameGroup: 1,
-      paramsGroup: 2,
-      detail: (match) => `event(${match[2].trim()})`
-    },
-    {
-      pattern: /(?:^|\n)\s*wallet\s+action\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/g,
-      kind: "Function",
-      nameGroup: 1,
-      detail: () => "wallet action"
+      detail: (match) => signatureText("func", match[1], match[2] || "", (match[3] || "").trim())
     },
   ];
 
@@ -739,12 +696,6 @@ function extractSymbols(masked, lineStarts) {
             const fieldOffset = match.index + match[0].indexOf(field[0]) + field[0].indexOf(fieldName);
             note("Field", fieldName, `field: ${field[2].trim()}`, rangeFromOffset(lineStarts, fieldOffset, fieldOffset + fieldName.length), name);
           }
-        } else if (match[0].includes("enum ")) {
-          for (const variant of body.matchAll(/^\s*([A-Za-z_][A-Za-z0-9_]*)/gm)) {
-            const variantName = variant[1];
-            const variantOffset = match.index + match[0].indexOf(variant[0]) + variant[0].indexOf(variantName);
-            note("EnumMember", variantName, `variant of ${name}`, rangeFromOffset(lineStarts, variantOffset, variantOffset + variantName.length), name);
-          }
         }
       }
 
@@ -755,13 +706,23 @@ function extractSymbols(masked, lineStarts) {
           note("Parameter", param.name, `param: ${param.type}`, rangeFromOffset(lineStarts, paramOffset, paramOffset + param.name.length), name);
         }
       }
+
+      if (spec.kind === "Function") {
+        const annotations = collectAnnotations(match[0]);
+        validateReservedHandlerUsage(name, annotations, paramsText, range, diagnostics);
+      }
     }
   }
 
-  for (const match of masked.matchAll(/(?:^|\n)\s*storage\s+([A-Za-z_][A-Za-z0-9_]*(?:<[^>\n]+>)?\??)/g)) {
-    const name = stripGenerics(match[1]).replace(/\?$/, "");
-    const offset = match.index + match[0].lastIndexOf(match[1]);
-    note("Type", name, "storage root reference", rangeFromOffset(lineStarts, offset, offset + match[1].length));
+  for (const match of masked.matchAll(/(?:^|\n)\s*contract\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/g)) {
+    const contractName = match[1];
+    const contractBodyStart = match.index + match[0].length;
+    const region = contractFieldRegion(masked.slice(contractBodyStart));
+    for (const field of region.matchAll(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([^\n]+)$/gm)) {
+      const fieldName = field[1];
+      const fieldOffset = contractBodyStart + field.index + field[0].indexOf(fieldName);
+      note("Field", fieldName, `contract field: ${field[2].trim()}`, rangeFromOffset(lineStarts, fieldOffset, fieldOffset + fieldName.length), contractName);
+    }
   }
 
   for (const match of masked.matchAll(/\b(?:var|val)\s+([A-Za-z_][A-Za-z0-9_]*)/g)) {
@@ -770,18 +731,18 @@ function extractSymbols(masked, lineStarts) {
     note("Variable", name, "local variable", rangeFromOffset(lineStarts, offset, offset + name.length));
   }
 
-  return { symbols, lookup };
+  return { symbols, lookup, diagnostics };
 }
 
 function buildLookup(symbols) {
   const lookup = {
     byName: new Map(),
+    contractNames: new Set(),
     typeNames: new Set(),
     functionNames: new Set(),
     parameterNames: new Set(),
     variableNames: new Set(),
     fields: new Set(),
-    enumMembers: new Set(),
     constantNames: new Set(),
     allNames: new Set()
   };
@@ -793,6 +754,8 @@ function buildLookup(symbols) {
     lookup.allNames.add(symbol.name);
     switch (symbol.kind) {
       case "Class":
+        lookup.contractNames.add(symbol.name);
+        break;
       case "Type":
         lookup.typeNames.add(symbol.name);
         break;
@@ -809,9 +772,6 @@ function buildLookup(symbols) {
       case "Field":
         lookup.fields.add(symbol.name);
         break;
-      case "EnumMember":
-        lookup.enumMembers.add(symbol.name);
-        break;
       case "Constant":
         lookup.constantNames.add(symbol.name);
         break;
@@ -823,14 +783,89 @@ function buildLookup(symbols) {
   return lookup;
 }
 
+function collectAnnotations(text) {
+  return (text.match(/@[A-Za-z_][A-Za-z0-9_]*/g) || []).filter(Boolean);
+}
+
+function validateReservedHandlerUsage(name, annotations, paramsText, range, diagnostics) {
+  const rule = reservedHandlerNames[name];
+  const reservedAnnotation = annotations.find((annotation) => {
+    return annotation === "@internal" || annotation === "@external" || annotation === "@bounced";
+  });
+
+  if (!rule && !reservedAnnotation) {
+    return;
+  }
+
+  if (rule) {
+    const hasExpectedAnnotation = annotations.includes(rule.annotation);
+    const signature = normalizeSignatureText(`func ${name}(${paramsText})`);
+    if (!hasExpectedAnnotation || signature !== normalizeSignatureText(rule.signature)) {
+      diagnostics.push({
+        severity: "error",
+        code: "E_RESERVED_HANDLER",
+        message: `Expected ${rule.annotation} to use ${rule.signature}.`,
+        range
+      });
+    }
+    return;
+  }
+
+  const expectedName = reservedHandlerNameFromAnnotation(reservedAnnotation);
+  if (expectedName) {
+    diagnostics.push({
+      severity: "error",
+      code: "E_RESERVED_HANDLER",
+      message: `Function declared with ${reservedAnnotation} must be named ${expectedName}.`,
+      range
+    });
+  }
+}
+
+function reservedHandlerNameFromAnnotation(annotation) {
+  switch (annotation) {
+    case "@internal":
+      return "onInternalMessage";
+    case "@external":
+      return "onExternalMessage";
+    case "@bounced":
+      return "onBouncedMessage";
+    default:
+      return null;
+  }
+}
+
+function normalizeSignatureText(text) {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+function contractFieldRegion(body) {
+  const candidates = [
+    body.search(/\n\s*@/),
+    body.search(/\n\s*func\b/),
+    body.search(/\n\s*}/)
+  ].filter((offset) => offset >= 0);
+  const end = candidates.length ? Math.min(...candidates) : body.length;
+  return body.slice(0, end);
+}
+
+function isReservedSymbolName(name) {
+  const keywordNames = new Set([
+    ...DECLARATION_KEYWORDS,
+    ...CONTROL_KEYWORDS,
+    ...LEGACY_IDENTIFIERS,
+    ...BUILTINS,
+    ...BUILTIN_CONSTANTS,
+    ...BUILTIN_TYPES
+  ]);
+  return keywordNames.has(name);
+}
+
 function findUnknownIdentifiers(tokens, lookup) {
   const diagnostics = [];
   const known = new Set([
     ...DECLARATION_KEYWORDS,
     ...CONTROL_KEYWORDS,
-    ...MESSAGE_KINDS,
-    ...PURITY_KEYWORDS,
-    ...SURFACE_KEYS,
     ...BUILTINS,
     ...BUILTIN_CONSTANTS,
     ...BUILTIN_TYPES,
@@ -860,8 +895,7 @@ function findUnknownIdentifiers(tokens, lookup) {
       ...BUILTINS,
       ...BUILTIN_CONSTANTS,
       ...BUILTIN_TYPES,
-      ...IMPLICIT_NAMES,
-      ...SURFACE_KEYS
+      ...IMPLICIT_NAMES
     ]);
     diagnostics.push({
       severity: "warning",
@@ -977,11 +1011,8 @@ function memberCompletionItems(beforeCursor, prefix) {
 }
 
 function classifyWord(word) {
-  if (DECLARATION_KEYWORDS.has(word) || CONTROL_KEYWORDS.has(word) || MESSAGE_KINDS.has(word) || PURITY_KEYWORDS.has(word)) {
+  if (DECLARATION_KEYWORDS.has(word) || CONTROL_KEYWORDS.has(word)) {
     return "keyword";
-  }
-  if (SURFACE_KEYS.has(word)) {
-    return "surfaceKey";
   }
   if (BUILTINS.has(word)) {
     return "builtin";
@@ -993,29 +1024,34 @@ function classifyWord(word) {
     return "type";
   }
   if (word === "true" || word === "false" || word === "null") {
-    return "keyword";
+    return "constant";
   }
   return "identifier";
 }
 
 function keywordHelp(word) {
   if (DECLARATION_KEYWORDS.has(word)) {
-    return "Declaration keyword.";
+    switch (word) {
+      case "contract":
+        return "Declares a contract.";
+      case "type":
+        return "Declares a type alias.";
+      case "struct":
+        return "Declares a struct type.";
+      case "func":
+        return "Declares a function.";
+      default:
+        return "Declaration keyword.";
+    }
   }
   if (CONTROL_KEYWORDS.has(word)) {
+    if (word === "assert") {
+      return "Assertion keyword.";
+    }
     return "Control-flow keyword.";
   }
-  if (MESSAGE_KINDS.has(word)) {
-    return "Message kind.";
-  }
-  if (PURITY_KEYWORDS.has(word)) {
-    return "Purity modifier.";
-  }
-  if (SURFACE_KEYS.has(word)) {
-    return SURFACE_KEY_HELP[word] || "Metadata key.";
-  }
   if (word === "true" || word === "false" || word === "null") {
-    return "Literal keyword.";
+    return "Literal constant.";
   }
   return "Keyword.";
 }
@@ -1028,6 +1064,26 @@ function makeCompletionItems(values, kind, prefix, detail, fromSymbols = false) 
     }
     return makeCompletionItem(value, kind, prefix, detail);
   });
+}
+
+function annotationCompletionItems(prefix) {
+  const items = [];
+  for (const name of ANNOTATION_ORDER) {
+    const template = annotationTemplates[name];
+    if (template) {
+      items.push(makeSnippetCompletionItem(template, prefix));
+      continue;
+    }
+    items.push(makeCompletionItem(name, "Keyword", prefix, ANNOTATION_HELP.get(name) || "Annotation."));
+  }
+  return items;
+}
+
+function createMessageCompletionItems(beforeCursor, prefix) {
+  if (!/createMessage\s*\(\s*\{[\s\S]*$/.test(beforeCursor)) {
+    return [];
+  }
+  return createMessageFields.map((field) => makeCompletionItem(field.label, "Property", prefix, field.detail));
 }
 
 function symbolKindToCompletionKind(kind) {
@@ -1043,8 +1099,6 @@ function symbolKindToCompletionKind(kind) {
       return "Variable";
     case "Field":
       return "Field";
-    case "EnumMember":
-      return "EnumMember";
     case "Constant":
       return "Constant";
     case "Type":
@@ -1066,6 +1120,19 @@ function makeCompletionItem(label, kind, prefix, detail) {
   };
 }
 
+function makeSnippetCompletionItem(template, prefix) {
+  if (!matchesPrefix(template.label, prefix)) {
+    return null;
+  }
+  return {
+    label: template.label,
+    kind: "Snippet",
+    detail: template.detail,
+    insertText: template.body.join("\n"),
+    sortText: `00_${template.label.toLowerCase()}`
+  };
+}
+
 function matchesPrefix(label, prefix) {
   if (!prefix) {
     return true;
@@ -1078,21 +1145,19 @@ function completionRank(kind) {
   switch (kind) {
     case "Keyword":
       return "01";
-    case "EnumMember":
-      return "02";
     case "Constant":
-      return "03";
+      return "02";
     case "Function":
-      return "04";
+      return "03";
     case "Class":
     case "TypeParameter":
-      return "05";
+      return "04";
     case "Property":
-      return "06";
+      return "05";
     case "Field":
-      return "07";
+      return "06";
     case "Variable":
-      return "08";
+      return "07";
     default:
       return "99";
   }

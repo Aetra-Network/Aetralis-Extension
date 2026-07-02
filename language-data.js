@@ -5,14 +5,7 @@ const declarationKeywords = [
   "type",
   "struct",
   "contract",
-  "storage",
-  "message",
-  "getter",
-  "event",
-  "wallet",
-  "action",
-  "fn",
-  "fun"
+  "func"
 ];
 
 const controlKeywords = [
@@ -29,21 +22,41 @@ const controlKeywords = [
   "val"
 ];
 
-const messageKinds = ["external", "internal", "bounced"];
+const annotationNames = [
+  "@storage",
+  "@message",
+  "@internal",
+  "@external",
+  "@bounced",
+  "@get",
+  "@pure",
+  "@impure",
+  "@store"
+];
 
-const purityKeywords = ["pure", "impure", "get", "store"];
+const annotationDetails = new Map([
+  ["@storage", "Marks a persistent storage struct."],
+  ["@message", "Marks a message body struct."],
+  ["@internal", "Marks an internal message handler."],
+  ["@external", "Marks an external message handler."],
+  ["@bounced", "Marks a bounced message handler."],
+  ["@get", "Marks a read-only getter."],
+  ["@pure", "Marks a helper that only computes a result."],
+  ["@impure", "Marks a function that may change chain-visible state."],
+  ["@store", "Legacy storage helper annotation."]
+]);
 
-const surfaceKeys = [
-  "author",
-  "description",
-  "version",
-  "title",
-  "risk",
-  "confirm_label",
-  "warning_level",
-  "expected_side_effects",
-  "fund_access",
-  "approval_semantics"
+const builtinTypes = [
+  "int64",
+  "uint32",
+  "uint256",
+  "address",
+  "coins",
+  "Segment",
+  "Chunk",
+  "InMessage",
+  "InMessageBounced",
+  "BounceMode"
 ];
 
 const builtins = [
@@ -79,34 +92,10 @@ const builtinConstants = [
   "SEND_MODE_DESTROY"
 ];
 
-const builtinTypes = [
-  "int64",
-  "uint32",
-  "uint256",
-  "address",
-  "coins",
-  "Segment",
-  "Chunk",
-  "InMessage",
-  "InMessageBounced",
-  "BounceMode",
-  "Grams"
-];
-
 const memberCompletions = {
-  random: [
-    { label: "initialize", detail: "random.initialize()" },
-    { label: "initializeBy", detail: "random.initializeBy(...)" },
-    { label: "uint256", detail: "random.uint256()" },
-    { label: "range", detail: "random.range(...)" },
-    { label: "getSeed", detail: "random.getSeed()" },
-    { label: "setSeed", detail: "random.setSeed(...)" }
-  ],
   contract: [
     { label: "getData", detail: "contract.getData()" },
-    { label: "setData", detail: "contract.setData(...)" },
-    { label: "getAddress", detail: "contract.getAddress()" },
-    { label: "getOriginalBalance", detail: "contract.getOriginalBalance()" }
+    { label: "setData", detail: "contract.setData(...)" }
   ],
   in: [
     { label: "body", detail: "in.body" },
@@ -127,68 +116,86 @@ const memberCompletions = {
   ]
 };
 
-const annotationNames = [
-  "@storage",
-  "@message",
-  "@internal",
-  "@external",
-  "@bounced",
-  "@get",
-  "@pure",
-  "@impure",
-  "@store"
+const createMessageFields = [
+  { label: "bounce", detail: "Bounce behavior" },
+  { label: "value", detail: "Coins to transfer" },
+  { label: "dest", detail: "Destination address" },
+  { label: "body", detail: "Message body" }
 ];
 
-const annotationDetails = new Map([
-  ["@storage", "Marks a persistent storage struct."],
-  ["@message", "Marks a message body struct."],
-  ["@internal", "Marks an internal message handler."],
-  ["@external", "Marks an external message handler."],
-  ["@bounced", "Marks a bounced message handler."],
-  ["@get", "Marks a read-only getter."],
-  ["@pure", "Marks a helper that only computes a result."],
-  ["@impure", "Marks a function that may change chain-visible state."],
-  ["@store", "Legacy storage helper annotation."]
-]);
+const annotationTemplates = {
+  "@internal": {
+    label: "@internal",
+    detail: "Insert the internal handler template",
+    body: [
+      "@internal",
+      "func onInternalMessage(in: InMessage) {",
+      "  $0",
+      "}"
+    ]
+  },
+  "@external": {
+    label: "@external",
+    detail: "Insert the external handler template",
+    body: [
+      "@external(inMsg: Segment)",
+      "func onExternalMessage(inMsg: Segment) {",
+      "  $0",
+      "}"
+    ]
+  },
+  "@bounced": {
+    label: "@bounced",
+    detail: "Insert the bounced handler template",
+    body: [
+      "@bounced",
+      "func onBouncedMessage(in: InMessageBounced) {",
+      "  $0",
+      "}"
+    ]
+  }
+};
 
-const keywordGroups = {
-  declarationKeywords,
-  controlKeywords,
-  messageKinds,
-  purityKeywords,
-  surfaceKeys,
-  builtins,
-  builtinConstants,
-  builtinTypes,
-  annotationNames
+const reservedHandlerNames = {
+  onInternalMessage: {
+    annotation: "@internal",
+    signature: "func onInternalMessage(in: InMessage)"
+  },
+  onExternalMessage: {
+    annotation: "@external",
+    signature: "func onExternalMessage(inMsg: Segment)"
+  },
+  onBouncedMessage: {
+    annotation: "@bounced",
+    signature: "func onBouncedMessage(in: InMessageBounced)"
+  }
 };
 
 function makeSet(values) {
   return new Set(values);
 }
 
-function regexSource(values) {
-  return values.map(escapeRegex).join("|");
-}
-
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function regexSource(values) {
+  return values.map(escapeRegex).join("|");
 }
 
 module.exports = {
   declarationKeywords,
   controlKeywords,
-  messageKinds,
-  purityKeywords,
-  surfaceKeys,
-  builtins,
-  builtinConstants,
-  builtinTypes,
-  memberCompletions,
   annotationNames,
   annotationDetails,
-  keywordGroups,
+  builtinTypes,
+  builtins,
+  builtinConstants,
+  memberCompletions,
+  createMessageFields,
+  annotationTemplates,
+  reservedHandlerNames,
   makeSet,
-  regexSource,
-  escapeRegex
+  escapeRegex,
+  regexSource
 };

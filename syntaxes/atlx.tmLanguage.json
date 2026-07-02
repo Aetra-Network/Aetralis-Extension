@@ -92,56 +92,20 @@
           }
         },
         {
-          "name": "meta.declaration.enum.atlx",
-          "match": "\\benum\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "name": "meta.declaration.type-alias.atlx",
+          "match": "\\btype\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*=",
           "captures": {
             "1": {
-              "name": "entity.name.type.enum.atlx"
+              "name": "entity.name.type.alias.atlx"
             }
           }
         },
         {
           "name": "meta.declaration.function.atlx",
-          "match": "(?:\\bfn\\b|\\bfun\\b)\\s+(?:(?:[A-Za-z_][A-Za-z0-9_]*)\\.)?([A-Za-z_][A-Za-z0-9_]*)",
+          "match": "\\bfunc\\s+(?:(?:[A-Za-z_][A-Za-z0-9_]*)\\.)?([A-Za-z_][A-Za-z0-9_]*)",
           "captures": {
             "1": {
               "name": "entity.name.function.atlx"
-            }
-          }
-        },
-        {
-          "name": "meta.declaration.message.atlx",
-          "match": "\\bmessage\\s+(?:external|internal|bounced)\\s+([A-Za-z_][A-Za-z0-9_]*)",
-          "captures": {
-            "1": {
-              "name": "entity.name.function.message.atlx"
-            }
-          }
-        },
-        {
-          "name": "meta.declaration.getter.atlx",
-          "match": "\\bgetter\\s+([A-Za-z_][A-Za-z0-9_]*)",
-          "captures": {
-            "1": {
-              "name": "entity.name.function.getter.atlx"
-            }
-          }
-        },
-        {
-          "name": "meta.declaration.event.atlx",
-          "match": "\\bevent\\s+([A-Za-z_][A-Za-z0-9_]*)",
-          "captures": {
-            "1": {
-              "name": "entity.name.type.event.atlx"
-            }
-          }
-        },
-        {
-          "name": "meta.declaration.wallet-action.atlx",
-          "match": "\\bwallet\\s+action\\s+([A-Za-z_][A-Za-z0-9_]*)",
-          "captures": {
-            "1": {
-              "name": "entity.name.function.wallet-action.atlx"
             }
           }
         }
@@ -150,24 +114,32 @@
     "keywords": {
       "patterns": [
         {
-          "name": "keyword.other.declaration.atlx",
-          "match": "\\b(?:const|type|struct|contract|storage|message|getter|event|wallet|action|fn|fun)\\b"
+          "name": "keyword.declaration.contract.atlx",
+          "match": "\\bcontract\\b"
+        },
+        {
+          "name": "keyword.declaration.type.atlx",
+          "match": "\\b(?:type|struct)\\b"
+        },
+        {
+          "name": "keyword.declaration.storage.atlx",
+          "match": "\\b(?:const|var|val)\\b"
+        },
+        {
+          "name": "keyword.declaration.function.atlx",
+          "match": "\\bfunc\\b"
+        },
+        {
+          "name": "keyword.control.assert.atlx",
+          "match": "\\bassert\\b"
         },
         {
           "name": "keyword.control.flow.atlx",
-          "match": "\\b(?:if|else|match|case|return|assert|throw|lazy|mutate|var|val)\\b"
+          "match": "\\b(?:if|else|match|case|return|throw|lazy|mutate)\\b"
         },
         {
-          "name": "keyword.other.message-kind.atlx",
-          "match": "\\b(?:external|internal|bounced)\\b"
-        },
-        {
-          "name": "keyword.other.purity.atlx",
-          "match": "\\b(?:pure|impure|get|store)\\b"
-        },
-        {
-          "name": "keyword.other.surface-key.atlx",
-          "match": "\\b(?:author|description|version|title|risk|confirm_label|warning_level|expected_side_effects|fund_access|approval_semantics)\\b"
+          "name": "keyword.other.metadata.atlx",
+          "match": "\\b(?:author|description|version)\\b"
         }
       ]
     },
@@ -196,7 +168,7 @@
       "patterns": [
         {
           "name": "storage.type.builtin.atlx",
-          "match": "\\b(?:int64|uint32|uint256|address|coins|Segment|Chunk|InMessage|InMessageBounced|BounceMode|Grams)\\b"
+          "match": "\\b(?:int64|uint32|uint256|address|coins|Segment|Chunk|InMessage|InMessageBounced|BounceMode)\\b"
         }
       ]
     },
