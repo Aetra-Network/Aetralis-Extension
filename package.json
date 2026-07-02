@@ -2,7 +2,7 @@
   "name": "aetralis-language",
   "displayName": "Aetralis Language",
   "description": "Language extension for Aetralis smart contract development on the Aetra blockchain.",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "publisher": "softwaremaestro",
   "repository": {
     "type": "git",
@@ -31,6 +31,118 @@
     "onLanguage:atlx"
   ],
   "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "atlx",
+        "aliases": [
+          "Aetralis",
+          "ATLX"
+        ],
+        "extensions": [
+          ".atlx"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "atlx",
+        "scopeName": "source.atlx",
+        "path": "./syntaxes/atlx.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "atlx",
+        "path": "./snippets/atlx.json"
+      }
+    ],
+    "semanticTokenTypes": [
+      {
+        "id": "annotation",
+        "superType": "decorator",
+        "description": "Aetralis annotation token."
+      },
+      {
+        "id": "contractKeyword",
+        "superType": "keyword",
+        "description": "The contract keyword."
+      },
+      {
+        "id": "typeKeyword",
+        "superType": "keyword",
+        "description": "The type or struct keyword."
+      },
+      {
+        "id": "storageKeyword",
+        "superType": "keyword",
+        "description": "The const, var, or val keyword."
+      },
+      {
+        "id": "metadataKeyword",
+        "superType": "keyword",
+        "description": "The author, description, or version keyword."
+      },
+      {
+        "id": "controlKeyword",
+        "superType": "keyword",
+        "description": "A control-flow keyword."
+      },
+      {
+        "id": "functionKeyword",
+        "superType": "keyword",
+        "description": "The func keyword."
+      },
+      {
+        "id": "contractName",
+        "superType": "class",
+        "description": "A contract symbol."
+      },
+      {
+        "id": "builtin",
+        "superType": "function",
+        "description": "A built-in runtime helper."
+      },
+      {
+        "id": "constant",
+        "superType": "variable",
+        "description": "A named constant or literal-like symbol."
+      },
+      {
+        "id": "messageName",
+        "superType": "enumMember",
+        "description": "A message variant name."
+      }
+    ],
+    "semanticTokenScopes": [
+      {
+        "scopes": {
+          "annotation": ["storage.type.annotation.atlx"],
+          "contractKeyword": ["keyword.declaration.contract.atlx"],
+          "typeKeyword": ["keyword.declaration.type.atlx"],
+          "storageKeyword": ["keyword.declaration.storage.atlx"],
+          "metadataKeyword": ["keyword.other.metadata.atlx"],
+          "controlKeyword": ["keyword.control.flow.atlx", "keyword.control.assert.atlx"],
+          "functionKeyword": ["keyword.declaration.function.atlx"],
+          "contractName": ["entity.name.type.contract.atlx"],
+          "builtin": ["support.function.builtin.atlx"],
+          "constant": ["constant.other.send-mode.atlx"],
+          "messageName": ["variable.other.property.atlx"]
+        }
+      },
+      {
+        "language": "atlx",
+        "scopes": {
+          "property": ["entity.name.variable.contract-field.atlx", "variable.other.property.atlx"],
+          "type": ["entity.name.type.struct.atlx", "entity.name.type.alias.atlx", "storage.type.builtin.atlx"],
+          "function": ["entity.name.function.atlx"],
+          "parameter": ["variable.parameter.atlx"],
+          "variable": ["variable.other.readwrite.atlx"]
+        }
+      }
+    ]
+  },
   "configurationDefaults": {
     "[atlx]": {
       "editor.semanticHighlighting.enabled": true,
@@ -41,8 +153,8 @@
           "contractKeyword": "#f4c96b",
           "typeKeyword": "#ffb86b",
           "storageKeyword": "#c792ea",
-          "metadataKeyword": "#8fd3c7",
-          "controlKeyword": "#8fd3c7",
+          "metadataKeyword": "#41d7d1",
+          "controlKeyword": "#41d7d1",
           "type": "#8dff9f",
           "contractName": "#f4c96b",
           "functionKeyword": "#f4c96b",
@@ -82,11 +194,18 @@
             "scope": [
               "entity.name.type.struct.atlx",
               "entity.name.type.alias.atlx",
-              "storage.type.builtin.atlx",
-              "keyword.declaration.type.atlx"
+              "storage.type.builtin.atlx"
             ],
             "settings": {
               "foreground": "#8dff9f"
+            }
+          },
+          {
+            "scope": [
+              "keyword.declaration.type.atlx"
+            ],
+            "settings": {
+              "foreground": "#ffb86b"
             }
           },
           {
@@ -137,33 +256,5 @@
     "@types/node": "^22.16.0",
     "@types/vscode": "^1.85.0",
     "typescript": "^5.9.2"
-  },
-  "contributes": {
-    "languages": [
-      {
-        "id": "atlx",
-        "aliases": [
-          "Aetralis",
-          "ATLX"
-        ],
-        "extensions": [
-          ".atlx"
-        ],
-        "configuration": "./language-configuration.json"
-      }
-    ],
-    "grammars": [
-      {
-        "language": "atlx",
-        "scopeName": "source.atlx",
-        "path": "./syntaxes/atlx.tmLanguage.json"
-      }
-    ],
-    "snippets": [
-      {
-        "language": "atlx",
-        "path": "./snippets/atlx.json"
-      }
-    ]
   }
 }
