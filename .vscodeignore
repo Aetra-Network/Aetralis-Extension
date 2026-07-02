@@ -2,3 +2,9 @@
 *.vsix
 node_modules/**
 .git/**
+src/**
+*.ts
+tsconfig.json
+analyzer.js
+extension.js
+language-data.js

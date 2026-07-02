@@ -1,4 +1,4 @@
-![Aetralis Language](./assets/aetralis.png)
+![Aetralis Language](https://raw.githubusercontent.com/Aetra-Network/Aetralis-Extension/codex/aetralis-language-refactor/assets/aetralis.png)
 
 # Aetralis Language
 
