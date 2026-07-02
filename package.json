@@ -2,7 +2,7 @@
   "name": "aetralis-language",
   "displayName": "Aetralis Language",
   "description": "Language extension for Aetralis smart contract development on the Aetra blockchain.",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "publisher": "softwaremaestro",
   "repository": {
     "type": "git",
@@ -151,7 +151,7 @@
         "rules": {
           "annotation": "#41d7d1",
           "contractKeyword": "#f4c96b",
-          "typeKeyword": "#ffb86b",
+          "typeKeyword": "#8dff9f",
           "storageKeyword": "#c792ea",
           "metadataKeyword": "#41d7d1",
           "controlKeyword": "#41d7d1",
@@ -163,11 +163,11 @@
           "parameter": "#b8f39b",
           "variable": "#8fd3c7",
           "property": "#8fd3c7",
-          "constant": "#ffd27a",
-          "number": "#ffd27a",
+          "constant": "#d8c6a0",
+          "number": "#d8c6a0",
           "operator": "#c9d6ea",
           "comment": "#5d6f8e",
-          "string": "#b7e59e"
+          "string": "#d8c6a0"
         }
       },
       "editor.tokenColorCustomizations": {
@@ -175,7 +175,29 @@
           {
             "scope": [
               "storage.type.annotation.atlx",
-              "storage.type.annotation"
+              "storage.type.annotation",
+              "meta.annotation.atlx",
+              "meta.annotation",
+              "keyword.annotation.atlx"
+            ],
+            "settings": {
+              "foreground": "#41d7d1"
+            }
+          },
+          {
+            "scope": [
+              "string.quoted.double.atlx",
+              "string.quoted.single.atlx",
+              "string"
+            ],
+            "settings": {
+              "foreground": "#d8c6a0"
+            }
+          },
+          {
+            "scope": [
+              "keyword.other.metadata.atlx",
+              "meta.declaration.metadata.atlx"
             ],
             "settings": {
               "foreground": "#41d7d1"
@@ -228,7 +250,8 @@
           {
             "scope": [
               "entity.name.variable.contract-field.atlx",
-              "variable.other.property.atlx"
+              "variable.other.property.atlx",
+              "meta.declaration.contract-field.atlx"
             ],
             "settings": {
               "foreground": "#8fd3c7"
