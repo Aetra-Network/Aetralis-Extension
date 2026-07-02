@@ -1,13 +1,14 @@
 {
   "name": "Aetralis",
   "scopeName": "source.atlx",
-  "patterns": [
-    { "include": "#comments" },
-    { "include": "#strings" },
-    { "include": "#annotations" },
-    { "include": "#declarations" },
-    { "include": "#keywords" },
-    { "include": "#members" },
+    "patterns": [
+      { "include": "#comments" },
+      { "include": "#strings" },
+      { "include": "#annotations" },
+      { "include": "#contractFields" },
+      { "include": "#declarations" },
+      { "include": "#keywords" },
+      { "include": "#members" },
     { "include": "#builtins" },
     { "include": "#types" },
     { "include": "#literals" },
@@ -106,6 +107,19 @@
           "captures": {
             "1": {
               "name": "entity.name.function.atlx"
+            }
+          }
+        }
+      ]
+    },
+    "contractFields": {
+      "patterns": [
+        {
+          "name": "meta.declaration.contract-field.atlx",
+          "match": "^(\\s*)([A-Za-z_][A-Za-z0-9_]*)\\s*:",
+          "captures": {
+            "2": {
+              "name": "entity.name.variable.contract-field.atlx"
             }
           }
         }

@@ -1,6 +1,7 @@
 {
   "name": "Aetralis Ocean",
   "type": "dark",
+  "semanticHighlighting": true,
   "colors": {
     "editor.background": "#09111f",
     "editor.foreground": "#dbe7ff",
@@ -17,23 +18,23 @@
     "comment": "#5d6f8e",
     "string": "#b7e59e",
     "annotation": "#41d7d1",
-    "contractKeyword": "#8ab4ff",
+    "contractKeyword": "#f4c96b",
     "typeKeyword": "#ffb86b",
     "storageKeyword": "#c792ea",
     "assertKeyword": "#c792ea",
-    "controlKeyword": "#58a6ff",
+    "controlKeyword": "#8fd3c7",
     "type": "#8dff9f",
-    "contractName": "#9bd8ff",
-    "functionKeyword": "#ff9f6e",
+    "contractName": "#f4c96b",
+    "functionKeyword": "#f4c96b",
     "builtin": "#ffd166",
     "function": "#f4c96b",
     "parameter": "#b8f39b",
-    "variable": "#c8f1b9",
+    "variable": "#8fd3c7",
     "property": "#8fd3c7",
     "messageName": "#8dff9f",
     "constant": "#ffd27a",
     "number": "#ffd27a",
-    "operator": "#9bb0d8"
+    "operator": "#c9d6ea"
   },
   "tokenColors": [
     {
@@ -73,7 +74,7 @@
         "entity.name.type.contract.atlx"
       ],
       "settings": {
-        "foreground": "#9bd8ff"
+        "foreground": "#f4c96b"
       }
     },
     {
@@ -84,6 +85,15 @@
       ],
       "settings": {
         "foreground": "#8dff9f"
+      }
+    },
+    {
+      "scope": [
+        "entity.name.variable.contract-field.atlx",
+        "meta.declaration.contract-field.atlx"
+      ],
+      "settings": {
+        "foreground": "#8fd3c7"
       }
     },
     {
@@ -99,7 +109,7 @@
         "keyword.declaration.contract.atlx"
       ],
       "settings": {
-        "foreground": "#8ab4ff"
+        "foreground": "#f4c96b"
       }
     },
     {
@@ -124,7 +134,7 @@
         "keyword.declaration.function.atlx"
       ],
       "settings": {
-        "foreground": "#ff9f6e"
+        "foreground": "#f4c96b"
       }
     },
     {
@@ -132,7 +142,7 @@
         "keyword.control.flow.atlx"
       ],
       "settings": {
-        "foreground": "#58a6ff"
+        "foreground": "#8fd3c7"
       }
     },
     {
