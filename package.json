@@ -2,7 +2,7 @@
   "name": "aetralis-language",
   "displayName": "Aetralis Language",
   "description": "Language extension for Aetralis smart contract development on the Aetra blockchain.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "softwaremaestro",
   "repository": {
     "type": "git",
@@ -31,6 +31,102 @@
     "onLanguage:atlx"
   ],
   "main": "./out/extension.js",
+  "configurationDefaults": {
+    "[atlx]": {
+      "editor.semanticHighlighting.enabled": true,
+      "editor.semanticTokenColorCustomizations": {
+        "enabled": true,
+        "rules": {
+          "annotation": "#41d7d1",
+          "contractKeyword": "#f4c96b",
+          "typeKeyword": "#ffb86b",
+          "storageKeyword": "#c792ea",
+          "metadataKeyword": "#8fd3c7",
+          "controlKeyword": "#8fd3c7",
+          "type": "#8dff9f",
+          "contractName": "#f4c96b",
+          "functionKeyword": "#f4c96b",
+          "builtin": "#ffd166",
+          "function": "#f4c96b",
+          "parameter": "#b8f39b",
+          "variable": "#8fd3c7",
+          "property": "#8fd3c7",
+          "constant": "#ffd27a",
+          "number": "#ffd27a",
+          "operator": "#c9d6ea",
+          "comment": "#5d6f8e",
+          "string": "#b7e59e"
+        }
+      },
+      "editor.tokenColorCustomizations": {
+        "textMateRules": [
+          {
+            "scope": [
+              "storage.type.annotation.atlx",
+              "storage.type.annotation"
+            ],
+            "settings": {
+              "foreground": "#41d7d1"
+            }
+          },
+          {
+            "scope": [
+              "entity.name.type.contract.atlx",
+              "keyword.declaration.contract.atlx"
+            ],
+            "settings": {
+              "foreground": "#f4c96b"
+            }
+          },
+          {
+            "scope": [
+              "entity.name.type.struct.atlx",
+              "entity.name.type.alias.atlx",
+              "storage.type.builtin.atlx",
+              "keyword.declaration.type.atlx"
+            ],
+            "settings": {
+              "foreground": "#8dff9f"
+            }
+          },
+          {
+            "scope": [
+              "entity.name.function.atlx",
+              "keyword.declaration.function.atlx"
+            ],
+            "settings": {
+              "foreground": "#f4c96b"
+            }
+          },
+          {
+            "scope": [
+              "keyword.declaration.storage.atlx"
+            ],
+            "settings": {
+              "foreground": "#c792ea"
+            }
+          },
+          {
+            "scope": [
+              "entity.name.variable.contract-field.atlx",
+              "variable.other.property.atlx"
+            ],
+            "settings": {
+              "foreground": "#8fd3c7"
+            }
+          },
+          {
+            "scope": [
+              "support.function.builtin.atlx"
+            ],
+            "settings": {
+              "foreground": "#ffd166"
+            }
+          }
+        ]
+      }
+    }
+  },
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -w -p .",
@@ -67,13 +163,6 @@
       {
         "language": "atlx",
         "path": "./snippets/atlx.json"
-      }
-    ],
-    "themes": [
-      {
-        "label": "Aetralis Ocean",
-        "uiTheme": "vs-dark",
-        "path": "./themes/aetralis-ocean-color-theme.json"
       }
     ]
   }
