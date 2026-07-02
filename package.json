@@ -2,7 +2,7 @@
   "name": "aetralis-language",
   "displayName": "Aetralis Language",
   "description": "Language extension for Aetralis smart contract development on the Aetra blockchain.",
-  "version": "0.1.5",
+  "version": "0.1.8",
   "publisher": "softwaremaestro",
   "repository": {
     "type": "git",
@@ -118,11 +118,11 @@
     "semanticTokenScopes": [
       {
         "scopes": {
-          "annotation": ["storage.type.annotation.atlx"],
+          "annotation": ["entity.other.attribute-name.atlx", "storage.type.annotation.atlx"],
           "contractKeyword": ["keyword.declaration.contract.atlx"],
           "typeKeyword": ["keyword.declaration.type.atlx"],
           "storageKeyword": ["keyword.declaration.storage.atlx"],
-          "metadataKeyword": ["keyword.other.metadata.atlx"],
+          "metadataKeyword": ["entity.name.variable.contract-field.atlx"],
           "controlKeyword": ["keyword.control.flow.atlx", "keyword.control.assert.atlx"],
           "functionKeyword": ["keyword.declaration.function.atlx"],
           "contractName": ["entity.name.type.contract.atlx"],
@@ -153,7 +153,7 @@
           "contractKeyword": "#f4c96b",
           "typeKeyword": "#8dff9f",
           "storageKeyword": "#c792ea",
-          "metadataKeyword": "#41d7d1",
+          "metadataKeyword": "#8fd3c7",
           "controlKeyword": "#41d7d1",
           "type": "#8dff9f",
           "contractName": "#f4c96b",
@@ -174,6 +174,7 @@
         "textMateRules": [
           {
             "scope": [
+              "entity.other.attribute-name.atlx",
               "storage.type.annotation.atlx",
               "storage.type.annotation",
               "meta.annotation.atlx",
@@ -196,11 +197,12 @@
           },
           {
             "scope": [
-              "keyword.other.metadata.atlx",
-              "meta.declaration.metadata.atlx"
+              "entity.other.attribute-name.atlx",
+              "meta.declaration.metadata.atlx",
+              "entity.name.variable.contract-field.atlx"
             ],
             "settings": {
-              "foreground": "#41d7d1"
+              "foreground": "#8fd3c7"
             }
           },
           {
@@ -272,6 +274,7 @@
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -w -p .",
+    "test": "node --test test/analyzer.test.js test/package.test.js",
     "vscode:prepublish": "npm run compile"
   },
   "devDependencies": {

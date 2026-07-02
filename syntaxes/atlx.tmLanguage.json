@@ -67,8 +67,16 @@
     "annotations": {
       "patterns": [
         {
-          "name": "storage.type.annotation.atlx",
+          "name": "entity.other.attribute-name.atlx",
           "match": "@[A-Za-z_][A-Za-z0-9_]*(?:\\([^\\n\\r]*?\\))?"
+        }
+      ]
+    },
+    "metadata": {
+      "patterns": [
+        {
+          "name": "entity.name.variable.contract-field.atlx",
+          "match": "\\b(?:author|description|version)\\b"
         }
       ]
     },
@@ -151,10 +159,6 @@
           "name": "keyword.control.flow.atlx",
           "match": "\\b(?:if|else|match|case|return|throw|lazy|mutate)\\b"
         },
-        {
-          "name": "keyword.other.metadata.atlx",
-          "match": "\\b(?:author|description|version)\\b"
-        }
       ]
     },
     "members": {

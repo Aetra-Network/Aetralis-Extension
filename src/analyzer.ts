@@ -51,7 +51,6 @@ export const SEMANTIC_TOKEN_TYPES = [
   "storageKeyword",
   "assertKeyword",
   "controlKeyword",
-  "metadataKeyword",
   "type",
   "contractName",
   "functionKeyword",
@@ -232,7 +231,7 @@ function semanticTypeForToken(token: any, lookup: any, tokens: any, index: numbe
       return "controlKeyword";
     }
     if (METADATA_KEYWORDS.has(token.text)) {
-      return "metadataKeyword";
+      return "property";
     }
     return "controlKeyword";
   }
