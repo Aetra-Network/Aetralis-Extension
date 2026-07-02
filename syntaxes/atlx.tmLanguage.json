@@ -1,0 +1,264 @@
+{
+  "name": "Aetralis",
+  "scopeName": "source.atlx",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#annotations" },
+    { "include": "#declarations" },
+    { "include": "#keywords" },
+    { "include": "#members" },
+    { "include": "#builtins" },
+    { "include": "#types" },
+    { "include": "#literals" },
+    { "include": "#numbers" },
+    { "include": "#operators" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.documentation.atlx",
+          "match": "///.*$"
+        },
+        {
+          "name": "comment.line.double-slash.atlx",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.documentation.atlx",
+          "begin": "/\\*\\*",
+          "end": "\\*/"
+        },
+        {
+          "name": "comment.block.atlx",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.atlx",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.atlx",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.atlx",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.atlx",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "annotations": {
+      "patterns": [
+        {
+          "name": "storage.type.annotation.atlx",
+          "match": "@[A-Za-z_][A-Za-z0-9_]*(?:\\([^\\n\\r]*?\\))?"
+        }
+      ]
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "name": "meta.declaration.contract.atlx",
+          "match": "\\bcontract\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.contract.atlx"
+            }
+          }
+        },
+        {
+          "name": "meta.declaration.struct.atlx",
+          "match": "\\bstruct\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.struct.atlx"
+            }
+          }
+        },
+        {
+          "name": "meta.declaration.enum.atlx",
+          "match": "\\benum\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.enum.atlx"
+            }
+          }
+        },
+        {
+          "name": "meta.declaration.function.atlx",
+          "match": "(?:\\bfn\\b|\\bfun\\b)\\s+(?:(?:[A-Za-z_][A-Za-z0-9_]*)\\.)?([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.atlx"
+            }
+          }
+        },
+        {
+          "name": "meta.declaration.message.atlx",
+          "match": "\\bmessage\\s+(?:external|internal|bounced)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.message.atlx"
+            }
+          }
+        },
+        {
+          "name": "meta.declaration.getter.atlx",
+          "match": "\\bgetter\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.getter.atlx"
+            }
+          }
+        },
+        {
+          "name": "meta.declaration.event.atlx",
+          "match": "\\bevent\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.event.atlx"
+            }
+          }
+        },
+        {
+          "name": "meta.declaration.wallet-action.atlx",
+          "match": "\\bwallet\\s+action\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.wallet-action.atlx"
+            }
+          }
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.other.declaration.atlx",
+          "match": "\\b(?:const|type|struct|contract|storage|message|getter|event|wallet|action|fn|fun)\\b"
+        },
+        {
+          "name": "keyword.control.flow.atlx",
+          "match": "\\b(?:if|else|match|case|return|assert|throw|lazy|mutate|var|val)\\b"
+        },
+        {
+          "name": "keyword.other.message-kind.atlx",
+          "match": "\\b(?:external|internal|bounced)\\b"
+        },
+        {
+          "name": "keyword.other.purity.atlx",
+          "match": "\\b(?:pure|impure|get|store)\\b"
+        },
+        {
+          "name": "keyword.other.surface-key.atlx",
+          "match": "\\b(?:author|description|version|title|risk|confirm_label|warning_level|expected_side_effects|fund_access|approval_semantics)\\b"
+        }
+      ]
+    },
+    "members": {
+      "patterns": [
+        {
+          "name": "variable.other.property.atlx",
+          "match": "\\.([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "variable.other.property.atlx"
+            }
+          }
+        }
+      ]
+    },
+    "builtins": {
+      "patterns": [
+        {
+          "name": "support.function.builtin.atlx",
+          "match": "\\b(?:now|getBalance|random|createMessage|commit|skipBouncedPrefix|fromSegment|fromChunk|toChunk|isEmpty|send)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "storage.type.builtin.atlx",
+          "match": "\\b(?:int64|uint32|uint256|address|coins|Segment|Chunk|InMessage|InMessageBounced|BounceMode|Grams)\\b"
+        }
+      ]
+    },
+    "literals": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.atlx",
+          "match": "\\b(?:true|false)\\b"
+        },
+        {
+          "name": "constant.language.null.atlx",
+          "match": "\\bnull\\b"
+        },
+        {
+          "name": "constant.other.send-mode.atlx",
+          "match": "\\b(?:SEND_DEFAULT|SEND_CARRY_REMAINDER|SEND_DRAIN_BALANCE|SEND_ESTIMATE_ONLY|SEND_FEE_FROM_BALANCE|SEND_IGNORE_ERRORS|SEND_BOUNCE_ON_FAIL|SEND_DESTROY_IF_EMPTY|SEND_MODE_REGULAR|SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE|SEND_MODE_CARRY_ALL_BALANCE|SEND_MODE_ESTIMATE_FEE_ONLY|SEND_MODE_PAY_FEES_SEPARATELY|SEND_MODE_IGNORE_ERRORS|SEND_MODE_BOUNCE_ON_ACTION_FAIL|SEND_MODE_DESTROY)\\b"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.integer.atlx",
+          "match": "\\b0x[0-9A-Fa-f]+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.atlx",
+          "match": "\\b\\d(?:_?\\d)*\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.arithmetic.atlx",
+          "match": "[+\\-*/%]"
+        },
+        {
+          "name": "keyword.operator.comparison.atlx",
+          "match": "(?:==|!=|<=|>=|=|<|>)"
+        },
+        {
+          "name": "keyword.operator.logical.atlx",
+          "match": "(?:&&|\\|\\||!)"
+        },
+        {
+          "name": "keyword.operator.arrow.atlx",
+          "match": "(?:->|=>)"
+        },
+        {
+          "name": "punctuation.section.block.begin.atlx",
+          "match": "[\\[\\(\\{]"
+        },
+        {
+          "name": "punctuation.section.block.end.atlx",
+          "match": "[\\]\\)\\}]"
+        },
+        {
+          "name": "punctuation.separator.atlx",
+          "match": "[:,.;]"
+        }
+      ]
+    }
+  }
+}

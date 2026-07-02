@@ -1,0 +1,81 @@
+{
+  "Aetralis Contract": {
+    "prefix": "atlx-contract",
+    "description": "Insert a contract skeleton based on the Aetralis sample language surface",
+    "body": [
+      "contract ${1:Counter} {",
+      "  author: \"${2:Your Name}\"",
+      "  description: \"${3:Short description}\"",
+      "  version: \"${4:0.1.0}\"",
+      "",
+      "  storage: ${5:Storage}",
+      "",
+      "  @internal",
+      "  fun onInternalMessage(in: ${6:InMessage}) {",
+      "    ${7:// handle internal message}",
+      "  }",
+      "",
+      "  @external",
+      "  fun onExternalMessage(inMsg: ${8:Segment}) {",
+      "    ${9:// handle external message}",
+      "  }",
+      "",
+      "  @get",
+      "  fun currentValue(): ${10:int64} {",
+      "    return ${11:state.value}",
+      "  }",
+      "",
+      "  event ${12:StateChanged}(old: ${13:int64}, next: ${13:int64})",
+      "",
+      "  wallet action ${14:Submit} {",
+      "    title = \"${15:Submit action}\"",
+      "    risk = \"${16:low}\"",
+      "    confirm_label = \"${17:Confirm}\"",
+      "    warning_level = \"${18:info}\"",
+      "    expected_side_effects = [\"${19:state write}\"]",
+      "    fund_access = ${20:false}",
+      "    approval_semantics = \"${21:review}\"",
+      "  }",
+      "}"
+    ]
+  },
+  "Aetralis Struct": {
+    "prefix": "atlx-struct",
+    "description": "Insert a struct definition",
+    "body": [
+      "struct ${1:MyStruct} {",
+      "  ${2:field}: ${3:uint32}",
+      "}"
+    ]
+  },
+  "Aetralis Function": {
+    "prefix": "atlx-fn",
+    "description": "Insert a helper function",
+    "body": [
+      "@pure",
+      "fun ${1:helper}(${2:value}: ${3:int64}) -> ${4:int64} {",
+      "  return ${2:value}",
+      "}"
+    ]
+  },
+  "Aetralis Message Handler": {
+    "prefix": "atlx-message",
+    "description": "Insert a message handler",
+    "body": [
+      "@internal",
+      "fun ${1:onInternalMessage}(in: ${2:InMessage}) {",
+      "  ${3:// handle message}",
+      "}"
+    ]
+  },
+  "Aetralis Getter": {
+    "prefix": "atlx-getter",
+    "description": "Insert a getter",
+    "body": [
+      "@get",
+      "fun ${1:currentValue}(): ${2:int64} {",
+      "  return ${3:state.value}",
+      "}"
+    ]
+  }
+}

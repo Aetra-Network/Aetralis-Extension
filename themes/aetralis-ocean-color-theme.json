@@ -1,0 +1,167 @@
+{
+  "name": "Aetralis Ocean",
+  "type": "dark",
+  "colors": {
+    "editor.background": "#09111f",
+    "editor.foreground": "#dbe7ff",
+    "editorLineNumber.foreground": "#42506f",
+    "editorLineNumber.activeForeground": "#8ea6d8",
+    "editorIndentGuide.background1": "#1d2740",
+    "editorIndentGuide.activeBackground1": "#35507d",
+    "editor.selectionBackground": "#24324f",
+    "editor.inactiveSelectionBackground": "#1a2339",
+    "editor.lineHighlightBackground": "#0e1729",
+    "editorCursor.foreground": "#8de0da"
+  },
+  "semanticTokenColors": {
+    "comment": "#5d6f8e",
+    "string": "#b7e59e",
+    "annotation": "#34d1d1",
+    "declarationKeyword": "#ff8b6b",
+    "controlKeyword": "#58a6ff",
+    "messageKind": "#f1b761",
+    "purityKeyword": "#8fe388",
+    "surfaceKey": "#7bdfff",
+    "builtin": "#ffd166",
+    "type": "#9bd8ff",
+    "function": "#f4c96b",
+    "parameter": "#b8f39b",
+    "variable": "#c8f1b9",
+    "property": "#8fd3c7",
+    "enumMember": "#69e2ff",
+    "constant": "#ffd27a",
+    "number": "#ffd27a",
+    "operator": "#9bb0d8"
+  },
+  "tokenColors": [
+    {
+      "scope": [
+        "comment",
+        "comment.line",
+        "comment.block",
+        "comment.line.documentation",
+        "comment.block.documentation"
+      ],
+      "settings": {
+        "foreground": "#5d6f8e",
+        "fontStyle": "italic"
+      }
+    },
+    {
+      "scope": [
+        "string",
+        "string.quoted.double",
+        "string.quoted.single"
+      ],
+      "settings": {
+        "foreground": "#b7e59e"
+      }
+    },
+    {
+      "scope": [
+        "storage.type.annotation.atlx",
+        "storage.type.annotation"
+      ],
+      "settings": {
+        "foreground": "#34d1d1"
+      }
+    },
+    {
+      "scope": [
+        "entity.name.type.contract.atlx",
+        "entity.name.type.struct.atlx",
+        "entity.name.type.enum.atlx",
+        "entity.name.type.event.atlx"
+      ],
+      "settings": {
+        "foreground": "#9bd8ff"
+      }
+    },
+    {
+      "scope": [
+        "entity.name.function.atlx",
+        "entity.name.function.message.atlx",
+        "entity.name.function.getter.atlx",
+        "entity.name.function.wallet-action.atlx"
+      ],
+      "settings": {
+        "foreground": "#f4c96b"
+      }
+    },
+    {
+      "scope": [
+        "keyword.other.declaration.atlx"
+      ],
+      "settings": {
+        "foreground": "#ff8b6b"
+      }
+    },
+    {
+      "scope": [
+        "keyword.control.flow.atlx"
+      ],
+      "settings": {
+        "foreground": "#58a6ff"
+      }
+    },
+    {
+      "scope": [
+        "keyword.other.message-kind.atlx"
+      ],
+      "settings": {
+        "foreground": "#f1b761"
+      }
+    },
+    {
+      "scope": [
+        "keyword.other.purity.atlx"
+      ],
+      "settings": {
+        "foreground": "#8fe388"
+      }
+    },
+    {
+      "scope": [
+        "keyword.other.surface-key.atlx"
+      ],
+      "settings": {
+        "foreground": "#7bdfff"
+      }
+    },
+    {
+      "scope": [
+        "support.function.builtin.atlx"
+      ],
+      "settings": {
+        "foreground": "#ffd166"
+      }
+    },
+    {
+      "scope": [
+        "storage.type.builtin.atlx"
+      ],
+      "settings": {
+        "foreground": "#9bd8ff"
+      }
+    },
+    {
+      "scope": [
+        "variable.other.property.atlx"
+      ],
+      "settings": {
+        "foreground": "#8fd3c7"
+      }
+    },
+    {
+      "scope": [
+        "constant.language.boolean.atlx",
+        "constant.language.null.atlx",
+        "constant.numeric.integer.atlx",
+        "constant.other.send-mode.atlx"
+      ],
+      "settings": {
+        "foreground": "#ffd27a"
+      }
+    }
+  ]
+}
