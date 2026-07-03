@@ -355,7 +355,8 @@
     "compile": "tsc -p .",
     "watch": "tsc -w -p .",
     "test": "node --test test/analyzer.test.js test/package.test.js",
-    "vscode:prepublish": "npm run compile"
+    "vscode:prepublish": "npm run compile",
+    "package": "npx vsce package --no-dependencies --out aetralis-language.vsix"
   },
   "devDependencies": {
     "@types/babel__traverse": "^7.28.0",
