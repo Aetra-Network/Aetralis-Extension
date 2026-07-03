@@ -53,6 +53,41 @@ contract Counter {
   assert.equal(semanticTypeForToken(analysis, "assert", 9), "assertKeyword");
 });
 
+test("keywords, names, variables, and builtin data types split into the requested lanes", () => {
+  const analysis = analyzeDocument(`
+const ERR = 1
+
+type CounterValue = uint64
+
+contract Counter {
+  @get
+  func currentCounter(value: address, chunk: Chunk) {
+    var localValue = value
+    if (localValue == value) {
+      return localValue
+    } else {
+      return value
+    }
+  }
+}`);
+
+  assert.equal(semanticTypeForToken(analysis, "const", 1), "storageKeyword");
+  assert.equal(semanticTypeForToken(analysis, "type", 3), "typeKeyword");
+  assert.equal(semanticTypeForToken(analysis, "CounterValue", 3), "type");
+  assert.equal(semanticTypeForToken(analysis, "uint64", 3), "builtinType");
+  assert.equal(semanticTypeForToken(analysis, "contract", 5), "contractKeyword");
+  assert.equal(semanticTypeForToken(analysis, "Counter", 5), "contractName");
+  assert.equal(semanticTypeForToken(analysis, "func", 7), "functionKeyword");
+  assert.equal(semanticTypeForToken(analysis, "currentCounter", 7), "function");
+  assert.equal(semanticTypeForToken(analysis, "address", 7), "builtinType");
+  assert.equal(semanticTypeForToken(analysis, "Chunk", 7), "builtinType");
+  assert.equal(semanticTypeForToken(analysis, "var", 8), "storageKeyword");
+  assert.equal(semanticTypeForToken(analysis, "localValue", 8), "variable");
+  assert.equal(semanticTypeForToken(analysis, "if", 9), "controlKeyword");
+  assert.equal(semanticTypeForToken(analysis, "else", 11), "controlKeyword");
+  assert.equal(semanticTypeForToken(analysis, "return", 10), "controlKeyword");
+});
+
 test("contract metadata and storage-like fields stay in the property color lane", () => {
   const analysis = analyzeDocument(`
 @storage
@@ -96,7 +131,7 @@ contract Counter {
 }`);
 
   assert.equal(semanticTypeForText(analysis, "Inc"), "messageName");
-  assert.equal(semanticTypeForText(analysis, "InMessage"), "type");
+  assert.equal(semanticTypeForText(analysis, "InMessage"), "builtinType");
 });
 
 test("builtin helpers and built-in member methods share one color lane", () => {

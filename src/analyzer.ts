@@ -53,6 +53,7 @@ export const SEMANTIC_TOKEN_TYPES = [
   "assertKeyword",
   "controlKeyword",
   "type",
+  "builtinType",
   "contractName",
   "functionKeyword",
   "messageName",
@@ -204,7 +205,7 @@ function semanticTypeForToken(token: any, lookup: any, tokens: any, index: numbe
     return "builtin";
   }
   if (token.kind === "type") {
-    return "type";
+    return "builtinType";
   }
   if (token.kind === "function") {
     return "function";
@@ -247,6 +248,9 @@ function semanticTypeForToken(token: any, lookup: any, tokens: any, index: numbe
       return "storageKeyword";
     }
     if (CONTROL_KEYWORDS.has(token.text)) {
+      if (token.text === "var" || token.text === "val") {
+        return "storageKeyword";
+      }
       if (token.text === "assert") {
         return "assertKeyword";
       }
@@ -279,7 +283,10 @@ function semanticTypeForToken(token: any, lookup: any, tokens: any, index: numbe
   if (lookup.contractNames && lookup.contractNames.has(token.text)) {
     return "contractName";
   }
-  if (lookup.typeNames.has(token.text) || BUILTIN_TYPES.has(token.text)) {
+  if (BUILTIN_TYPES.has(token.text)) {
+    return "builtinType";
+  }
+  if (lookup.typeNames.has(token.text)) {
     return "type";
   }
   if (lookup.functionNames.has(token.text)) {

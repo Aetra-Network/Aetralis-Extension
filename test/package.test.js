@@ -7,15 +7,20 @@ test("language-specific defaults lock the requested colors", () => {
   assert.ok(defaults, "missing [atlx] defaults");
 
   const semanticRules = defaults["editor.semanticTokenColorCustomizations"].rules;
-  assert.equal(semanticRules.annotation, "#3ddc97");
+  assert.equal(semanticRules.annotation, "#39d5d0");
   assert.equal(semanticRules.assertKeyword, "#c792ea");
   assert.equal(semanticRules.property, "#6bd6ff");
   assert.equal(semanticRules.string, "#d8c6a0");
-  assert.equal(semanticRules.functionKeyword, "#f4c96b");
+  assert.equal(semanticRules.functionKeyword, "#ff8fab");
   assert.equal(semanticRules.type, "#8dff9f");
+  assert.equal(semanticRules.builtinType, "#ffb86b");
   assert.equal(semanticRules.messageName, "#8dff9f");
-  assert.equal(semanticRules.function, "#ffd166");
-  assert.equal(semanticRules.builtin, "#ffd166");
+  assert.equal(semanticRules.contractKeyword, "#ff8fab");
+  assert.equal(semanticRules.storageKeyword, "#6bd6ff");
+  assert.equal(semanticRules.controlKeyword, "#c792ea");
+  assert.equal(semanticRules.contractName, "#8dff9f");
+  assert.equal(semanticRules.function, "#c77dff");
+  assert.equal(semanticRules.builtin, "#ffd60a");
 });
 
 test("language icon points at atlx artwork", () => {
@@ -37,15 +42,18 @@ test("textmate fallback rules cover annotations, metadata, fields, and controls"
 
   const assertRule = rules.find((rule) => rule.scope.includes("keyword.control.assert.atlx"));
   assert.ok(assertRule, "missing assert scope fallback");
+  const builtinTypeRule = rules.find((rule) => rule.scope.includes("storage.type.builtin.atlx"));
+  assert.ok(builtinTypeRule, "missing builtin type scope fallback");
 
-  assert.equal(annotationRule.settings.foreground, "#3ddc97");
+  assert.equal(annotationRule.settings.foreground, "#39d5d0");
   assert.equal(metadataRule.settings.foreground, "#6bd6ff");
   assert.equal(assertRule.settings.foreground, "#c792ea");
+  assert.equal(builtinTypeRule.settings.foreground, "#ffb86b");
 });
 
 test("semantic token legend includes the emitted token types", () => {
   const tokenTypes = packageJson.contributes.semanticTokenTypes.map((entry) => entry.id);
-  for (const id of ["assertKeyword", "type", "function", "parameter", "variable", "property", "number", "operator", "messageName"]) {
+  for (const id of ["assertKeyword", "type", "builtinType", "function", "parameter", "variable", "property", "number", "operator", "messageName"]) {
     assert.ok(tokenTypes.includes(id), `missing semantic token type ${id}`);
   }
 });

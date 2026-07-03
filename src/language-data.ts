@@ -31,6 +31,7 @@ export const annotationDetails = new Map<string, string>([
 export const builtinTypes = [
   "int64",
   "uint32",
+  "uint64",
   "uint256",
   "address",
   "coins",
