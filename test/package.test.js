@@ -30,6 +30,12 @@ test("language icon points at atlx artwork", () => {
   assert.equal(language.icon.dark, "./assets/atlx.png");
 });
 
+test("file icon theme points at atlx artwork", () => {
+  const theme = packageJson.contributes.iconThemes.find((entry) => entry.id === "aetralis-file-icons");
+  assert.ok(theme, "missing file icon theme contribution");
+  assert.equal(theme.path, "./fileicons/aetralis-file-icons.json");
+});
+
 test("textmate fallback rules cover annotations, metadata, fields, and controls", () => {
   const defaults = packageJson.configurationDefaults["[atlx]"];
   const rules = defaults["editor.tokenColorCustomizations"].textMateRules;

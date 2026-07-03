@@ -2,7 +2,7 @@
   "name": "aetralis-language",
   "displayName": "Aetralis Language",
   "description": "Syntax highlighting, autocompletion, hover help, diagnostics, and snippets for the Aetralis language.",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "publisher": "softwaremaestro",
   "repository": {
     "type": "git",
@@ -60,6 +60,13 @@
       {
         "language": "atlx",
         "path": "./snippets/atlx.json"
+      }
+    ],
+    "iconThemes": [
+      {
+        "id": "aetralis-file-icons",
+        "label": "Aetralis File Icons",
+        "path": "./fileicons/aetralis-file-icons.json"
       }
     ],
     "semanticTokenTypes": [

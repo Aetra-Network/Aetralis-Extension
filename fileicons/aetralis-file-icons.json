@@ -1,0 +1,13 @@
+{
+  "iconDefinitions": {
+    "_file_atlx": {
+      "iconPath": "../assets/atlx.png"
+    }
+  },
+  "fileExtensions": {
+    "atlx": "_file_atlx"
+  },
+  "languageIds": {
+    "atlx": "_file_atlx"
+  }
+}
