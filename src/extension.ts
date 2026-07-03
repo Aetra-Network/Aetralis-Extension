@@ -11,6 +11,7 @@ import {
 export function activate(context: vscode.ExtensionContext) {
   const diagnostics = vscode.languages.createDiagnosticCollection("aetralis");
   const validationTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const analysisCache = new Map<string, { version: number; analysis: ReturnType<typeof analyzeDocument> }>();
   const semanticTokensLegend = new vscode.SemanticTokensLegend([...SEMANTIC_TOKEN_TYPES], []);
 
   const validate = (document: vscode.TextDocument) => {
@@ -19,7 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     try {
-      const analysis = analyzeDocument(document.getText());
+      const analysis = getAnalysis(document);
       diagnostics.set(document.uri, analysis.diagnostics.map(toDiagnostic));
     } catch (error: any) {
       diagnostics.set(document.uri, [
@@ -56,7 +57,7 @@ export function activate(context: vscode.ExtensionContext) {
       { language: "atlx" },
       {
         provideCompletionItems(document, position) {
-          const analysis = analyzeDocument(document.getText());
+          const analysis = getAnalysis(document);
           return getCompletionItems(analysis, position).map(toCompletionItem);
         }
       },
@@ -68,7 +69,7 @@ export function activate(context: vscode.ExtensionContext) {
       { language: "atlx" },
       {
         provideHover(document, position) {
-          const analysis = analyzeDocument(document.getText());
+          const analysis = getAnalysis(document);
           const markdown = getHoverMarkdown(analysis, position);
           return markdown ? new vscode.Hover(new vscode.MarkdownString(markdown)) : null;
         }
@@ -78,7 +79,7 @@ export function activate(context: vscode.ExtensionContext) {
       { language: "atlx" },
       {
         provideDocumentSymbols(document) {
-          const analysis = analyzeDocument(document.getText());
+          const analysis = getAnalysis(document);
           return getDocumentSymbols(analysis).map(toDocumentSymbol);
         }
       }
@@ -87,7 +88,7 @@ export function activate(context: vscode.ExtensionContext) {
       { language: "atlx" },
       {
         provideDocumentSemanticTokens(document) {
-          const analysis = analyzeDocument(document.getText());
+          const analysis = getAnalysis(document);
           const builder = new vscode.SemanticTokensBuilder();
           for (const token of getSemanticTokens(analysis)) {
             const index = SEMANTIC_TOKEN_TYPES.indexOf(token.type as any);
@@ -111,6 +112,7 @@ export function activate(context: vscode.ExtensionContext) {
         clearTimeout(existing);
         validationTimers.delete(key);
       }
+      analysisCache.delete(key);
     }),
     {
       dispose() {
@@ -118,6 +120,7 @@ export function activate(context: vscode.ExtensionContext) {
           clearTimeout(timer);
         }
         validationTimers.clear();
+        analysisCache.clear();
       }
     }
   ];
@@ -126,6 +129,18 @@ export function activate(context: vscode.ExtensionContext) {
 
   for (const document of vscode.workspace.textDocuments) {
     scheduleValidation(document);
+  }
+
+  function getAnalysis(document: vscode.TextDocument) {
+    const key = document.uri.toString();
+    const cached = analysisCache.get(key);
+    if (cached && cached.version === document.version) {
+      return cached.analysis;
+    }
+
+    const analysis = analyzeDocument(document.getText());
+    analysisCache.set(key, { version: document.version, analysis });
+    return analysis;
   }
 }
 

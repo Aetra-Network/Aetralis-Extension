@@ -130,7 +130,7 @@ export function getHoverMarkdown(analysis: any, position: any) {
 }
 
 export function getCompletionItems(analysis: any, position: any) {
-  const prefix = getPrefixAtPosition(analysis.text, position);
+  const prefix = getPrefixAtPosition(analysis.text, position, analysis.lineStarts);
   const lineText = getLineText(analysis.text, analysis.lineStarts, position.line);
   const beforeCursor = lineText.slice(0, position.character);
   const textBeforeCursor = analysis.text.slice(0, positionToOffset(analysis.lineStarts, position));
@@ -1012,15 +1012,33 @@ function nextSignificantToken(tokens: any[], index: number) {
 
 function tokenAtPosition(tokens: any[], position: any, lineStarts: number[]) {
   const offset = positionToOffset(lineStarts, position);
-  return tokens.find((token) => {
-    const start = positionToOffset(lineStarts, token.start);
-    const end = positionToOffset(lineStarts, token.end);
-    return offset >= start && offset < end;
-  }) || null;
+  let low = 0;
+  let high = tokens.length - 1;
+  let candidate = -1;
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const start = positionToOffset(lineStarts, tokens[mid].start);
+    if (start <= offset) {
+      candidate = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  if (candidate < 0) {
+    return null;
+  }
+
+  const token = tokens[candidate];
+  const end = positionToOffset(lineStarts, token.end);
+  return offset < end ? token : null;
 }
 
-function getPrefixAtPosition(text: string, position: any) {
-  const line = getLineText(text, buildLineStarts(text), position.line);
+function getPrefixAtPosition(text: string, position: any, lineStarts?: number[]) {
+  const starts = lineStarts || buildLineStarts(text);
+  const line = getLineText(text, starts, position.line);
   const slice = line.slice(0, position.character);
   const match = slice.match(/[A-Za-z_@][A-Za-z0-9_@]*$/);
   return match ? match[0] : "";
