@@ -18,6 +18,13 @@ test("language-specific defaults lock the requested colors", () => {
   assert.equal(semanticRules.builtin, "#ffd166");
 });
 
+test("language icon points at atlx artwork", () => {
+  const language = packageJson.contributes.languages.find((entry) => entry.id === "atlx");
+  assert.ok(language, "missing atlx language contribution");
+  assert.equal(language.icon.light, "./assets/atlx.png");
+  assert.equal(language.icon.dark, "./assets/atlx.png");
+});
+
 test("textmate fallback rules cover annotations, metadata, fields, and controls", () => {
   const defaults = packageJson.configurationDefaults["[atlx]"];
   const rules = defaults["editor.tokenColorCustomizations"].textMateRules;

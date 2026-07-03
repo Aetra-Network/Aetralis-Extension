@@ -1,8 +1,8 @@
 {
   "name": "aetralis-language",
   "displayName": "Aetralis Language",
-  "description": "Language extension for Aetralis smart contract development on the Aetra blockchain.",
-  "version": "0.1.9",
+  "description": "Syntax highlighting, autocompletion, hover help, diagnostics, and snippets for the Aetralis language.",
+  "version": "0.1.10",
   "publisher": "softwaremaestro",
   "repository": {
     "type": "git",
@@ -42,6 +42,10 @@
         "extensions": [
           ".atlx"
         ],
+        "icon": {
+          "light": "./assets/atlx.png",
+          "dark": "./assets/atlx.png"
+        },
         "configuration": "./language-configuration.json"
       }
     ],

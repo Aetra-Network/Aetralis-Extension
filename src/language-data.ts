@@ -96,17 +96,17 @@ export const annotationTemplates: Record<
   "@internal": {
     label: "@internal",
     detail: "Insert the internal handler template",
-    body: ["@internal", "func onInternalMessage(in: InMessage) {", "  $0", "}"]
+    body: ["internal", "func onInternalMessage(in: InMessage) {", "  $0", "}"]
   },
   "@external": {
     label: "@external",
     detail: "Insert the external handler template",
-    body: ["@external(inMsg: Segment)", "func onExternalMessage(inMsg: Segment) {", "  $0", "}"]
+    body: ["external(inMsg: Segment)", "func onExternalMessage(inMsg: Segment) {", "  $0", "}"]
   },
   "@bounced": {
     label: "@bounced",
     detail: "Insert the bounced handler template",
-    body: ["@bounced", "func onBouncedMessage(in: InMessageBounced) {", "  $0", "}"]
+    body: ["bounced", "func onBouncedMessage(in: InMessageBounced) {", "  $0", "}"]
   }
 };
 

@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const { analyzeDocument, getSemanticTokens } = require("../out/analyzer");
+const { getCompletionItems } = require("../out/analyzer");
 
 function semanticTypeForToken(analysis, text, line) {
   const token = analysis.tokens.find((entry) => entry.text === text && entry.start.line === line);
@@ -126,4 +127,17 @@ contract Counter {
   assert.equal(semanticTypeForText(analysis, "now"), "builtin");
   assert.equal(semanticTypeForText(analysis, "getBalance"), "builtin");
   assert.equal(semanticTypeForText(analysis, "random"), "builtin");
+});
+
+test("annotation completions do not duplicate the leading at sign", () => {
+  const analysis = analyzeDocument("@in");
+  const items = getCompletionItems(analysis, { line: 0, character: 3 });
+
+  const internal = items.find((item) => item.label === "@internal");
+  assert.ok(internal, "missing @internal completion");
+  assert.ok(String(internal.insertText).startsWith("internal"), "annotation completion should not include a second @");
+
+  const getter = getCompletionItems(analyzeDocument("@g"), { line: 0, character: 2 }).find((item) => item.label === "@get");
+  assert.ok(getter, "missing @get completion");
+  assert.equal(String(getter.insertText), "get");
 });

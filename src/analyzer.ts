@@ -1165,12 +1165,16 @@ function makeCompletionItem(label: string, kind: string | null, prefix: string, 
   if (!matchesPrefix(label, prefix)) {
     return null;
   }
-  return {
+  const item: any = {
     label,
     kind,
     detail,
     sortText: `${completionRank(kind)}_${label.toLowerCase()}`
   };
+  if (label.startsWith("@")) {
+    item.insertText = label.slice(1);
+  }
+  return item;
 }
 
 function makeSnippetCompletionItem(template: any, prefix: string) {
@@ -1191,7 +1195,8 @@ function matchesPrefix(label: string, prefix: string) {
     return true;
   }
   const normalizedPrefix = prefix.replace(/^@/, "").toLowerCase();
-  return label.toLowerCase().startsWith(normalizedPrefix);
+  const normalizedLabel = label.replace(/^@/, "").toLowerCase();
+  return normalizedLabel.startsWith(normalizedPrefix);
 }
 
 function completionRank(kind: any) {
