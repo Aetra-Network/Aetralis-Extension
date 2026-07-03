@@ -2,7 +2,7 @@
   "name": "aetralis-language",
   "displayName": "Aetralis Language",
   "description": "Language extension for Aetralis smart contract development on the Aetra blockchain.",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "publisher": "softwaremaestro",
   "repository": {
     "type": "git",
@@ -12,7 +12,7 @@
     "url": "https://github.com/Aetra-Network/Aetralis-Extension/issues"
   },
   "homepage": "https://github.com/Aetra-Network/Aetralis-Extension#readme",
-  "icon": "./assets/aetralis.png",
+  "icon": "./assets/atlx.png",
   "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
@@ -80,9 +80,9 @@
         "description": "The const, var, or val keyword."
       },
       {
-        "id": "metadataKeyword",
+        "id": "assertKeyword",
         "superType": "keyword",
-        "description": "The author, description, or version keyword."
+        "description": "The assert keyword."
       },
       {
         "id": "controlKeyword",
@@ -95,6 +95,11 @@
         "description": "The func keyword."
       },
       {
+        "id": "type",
+        "superType": "type",
+        "description": "A declared or built-in type."
+      },
+      {
         "id": "contractName",
         "superType": "class",
         "description": "A contract symbol."
@@ -105,9 +110,39 @@
         "description": "A built-in runtime helper."
       },
       {
+        "id": "function",
+        "superType": "function",
+        "description": "A declared function."
+      },
+      {
+        "id": "parameter",
+        "superType": "variable",
+        "description": "A function parameter."
+      },
+      {
+        "id": "variable",
+        "superType": "variable",
+        "description": "A local variable."
+      },
+      {
+        "id": "property",
+        "superType": "property",
+        "description": "A field or property."
+      },
+      {
         "id": "constant",
         "superType": "variable",
         "description": "A named constant or literal-like symbol."
+      },
+      {
+        "id": "number",
+        "superType": "number",
+        "description": "A numeric literal."
+      },
+      {
+        "id": "operator",
+        "superType": "operator",
+        "description": "An operator token."
       },
       {
         "id": "messageName",
@@ -122,23 +157,25 @@
           "contractKeyword": ["keyword.declaration.contract.atlx"],
           "typeKeyword": ["keyword.declaration.type.atlx"],
           "storageKeyword": ["keyword.declaration.storage.atlx"],
-          "metadataKeyword": ["entity.name.variable.contract-field.atlx"],
+          "assertKeyword": ["keyword.control.assert.atlx"],
           "controlKeyword": ["keyword.control.flow.atlx", "keyword.control.assert.atlx"],
           "functionKeyword": ["keyword.declaration.function.atlx"],
           "contractName": ["entity.name.type.contract.atlx"],
           "builtin": ["support.function.builtin.atlx"],
           "constant": ["constant.other.send-mode.atlx"],
-          "messageName": ["variable.other.property.atlx"]
+          "messageName": ["constant.other.message.atlx"]
         }
       },
       {
         "language": "atlx",
         "scopes": {
-          "property": ["entity.name.variable.contract-field.atlx", "variable.other.property.atlx"],
           "type": ["entity.name.type.struct.atlx", "entity.name.type.alias.atlx", "storage.type.builtin.atlx"],
           "function": ["entity.name.function.atlx"],
           "parameter": ["variable.parameter.atlx"],
-          "variable": ["variable.other.readwrite.atlx"]
+          "variable": ["variable.other.readwrite.atlx"],
+          "property": ["entity.name.variable.contract-field.atlx", "variable.other.property.atlx"],
+          "number": ["constant.numeric.integer.atlx"],
+          "operator": ["keyword.operator.arithmetic.atlx", "keyword.operator.comparison.atlx", "keyword.operator.logical.atlx", "keyword.operator.arrow.atlx"]
         }
       }
     ]
@@ -149,20 +186,21 @@
       "editor.semanticTokenColorCustomizations": {
         "enabled": true,
         "rules": {
-          "annotation": "#41d7d1",
+          "annotation": "#3ddc97",
           "contractKeyword": "#f4c96b",
           "typeKeyword": "#8dff9f",
           "storageKeyword": "#c792ea",
-          "metadataKeyword": "#8fd3c7",
+          "assertKeyword": "#c792ea",
           "controlKeyword": "#41d7d1",
           "type": "#8dff9f",
           "contractName": "#f4c96b",
           "functionKeyword": "#f4c96b",
           "builtin": "#ffd166",
-          "function": "#f4c96b",
+          "function": "#ffd166",
           "parameter": "#b8f39b",
-          "variable": "#8fd3c7",
-          "property": "#8fd3c7",
+          "variable": "#6bd6ff",
+          "property": "#6bd6ff",
+          "messageName": "#8dff9f",
           "constant": "#d8c6a0",
           "number": "#d8c6a0",
           "operator": "#c9d6ea",
@@ -182,7 +220,7 @@
               "keyword.annotation.atlx"
             ],
             "settings": {
-              "foreground": "#41d7d1"
+              "foreground": "#3ddc97"
             }
           },
           {
@@ -198,11 +236,10 @@
           {
             "scope": [
               "entity.other.attribute-name.atlx",
-              "meta.declaration.metadata.atlx",
               "entity.name.variable.contract-field.atlx"
             ],
             "settings": {
-              "foreground": "#8fd3c7"
+              "foreground": "#6bd6ff"
             }
           },
           {
@@ -211,7 +248,7 @@
               "keyword.declaration.contract.atlx"
             ],
             "settings": {
-              "foreground": "#f4c96b"
+              "foreground": "#ffd166"
             }
           },
           {
@@ -229,7 +266,15 @@
               "keyword.declaration.type.atlx"
             ],
             "settings": {
-              "foreground": "#ffb86b"
+              "foreground": "#8dff9f"
+            }
+          },
+          {
+            "scope": [
+              "keyword.control.assert.atlx"
+            ],
+            "settings": {
+              "foreground": "#c792ea"
             }
           },
           {
@@ -238,7 +283,7 @@
               "keyword.declaration.function.atlx"
             ],
             "settings": {
-              "foreground": "#f4c96b"
+              "foreground": "#ffd166"
             }
           },
           {
@@ -256,7 +301,16 @@
               "meta.declaration.contract-field.atlx"
             ],
             "settings": {
-              "foreground": "#8fd3c7"
+              "foreground": "#6bd6ff"
+            }
+          },
+          {
+            "scope": [
+              "constant.numeric.integer.atlx",
+              "constant.other.send-mode.atlx"
+            ],
+            "settings": {
+              "foreground": "#d8c6a0"
             }
           },
           {

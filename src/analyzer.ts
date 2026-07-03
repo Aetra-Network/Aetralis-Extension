@@ -24,6 +24,7 @@ const BUILTINS: Set<string> = makeSet(builtins as readonly string[]);
 const BUILTIN_CONSTANTS: Set<string> = makeSet(builtinConstants as readonly string[]);
 const BOUNCE_MODE_MEMBERS: Set<string> = makeSet(bounceModeMembers as readonly string[]);
 const BUILTIN_TYPES: Set<string> = makeSet(builtinTypes as readonly string[]);
+const CONTRACT_MEMBER_FUNCTIONS: Set<string> = makeSet(["getData", "setData"] as readonly string[]);
 
 const ANNOTATION_ORDER = annotationNames;
 const ANNOTATION_HELP = annotationDetails;
@@ -199,14 +200,35 @@ function semanticTypeForToken(token: any, lookup: any, tokens: any, index: numbe
   if (token.kind === "annotation") {
     return "annotation";
   }
+  if (token.kind === "builtin") {
+    return "builtin";
+  }
+  if (token.kind === "type") {
+    return "type";
+  }
+  if (token.kind === "function") {
+    return "function";
+  }
+  if (token.kind === "parameter") {
+    return "parameter";
+  }
+  if (token.kind === "variable") {
+    return "variable";
+  }
+  if (token.kind === "constant") {
+    return "constant";
+  }
   if (token.kind === "number") {
     return "number";
   }
   if (token.kind === "operator") {
     return "operator";
   }
+  if (token.kind === "property") {
+    return "property";
+  }
   if (token.kind === "keyword") {
-  if (DECLARATION_KEYWORDS.has(token.text)) {
+    if (DECLARATION_KEYWORDS.has(token.text)) {
       if (token.text === "contract") {
         return "contractKeyword";
       }
@@ -246,6 +268,13 @@ function semanticTypeForToken(token: any, lookup: any, tokens: any, index: numbe
   }
   if (BOUNCE_MODE_MEMBERS.has(token.text)) {
     return "constant";
+  }
+  if (lookup.messageNames && lookup.messageNames.has(token.text)) {
+    return "messageName";
+  }
+  const previous = previousSignificantToken(tokens, index);
+  if (previous && previous.kind === "operator" && previous.text === "." && CONTRACT_MEMBER_FUNCTIONS.has(token.text)) {
+    return "builtin";
   }
   if (lookup.contractNames && lookup.contractNames.has(token.text)) {
     return "contractName";
@@ -593,6 +622,7 @@ function extractSymbols(masked: string, lineStarts: number[]) {
     byName: new Map<string, any>(),
     contractNames: new Set<string>(),
     typeNames: new Set<string>(),
+    messageNames: new Set<string>(),
     functionNames: new Set<string>(),
     parameterNames: new Set<string>(),
     variableNames: new Set<string>(),
@@ -614,6 +644,9 @@ function extractSymbols(masked: string, lineStarts: number[]) {
         break;
       case "Type":
         lookup.typeNames.add(name);
+        break;
+      case "Message":
+        lookup.messageNames.add(name);
         break;
       case "Function":
       case "Method":
@@ -670,7 +703,7 @@ function extractSymbols(masked: string, lineStarts: number[]) {
       detail: () => "contract"
     },
     {
-      pattern: /(?:^|\n)\s*struct\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{([\s\S]*?)\}/g,
+      pattern: /(?:^|\n)\s*(?:@[A-Za-z_][A-Za-z0-9_]*(?:\([^)]*\))?\s*)*struct\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{([\s\S]*?)\}/g,
       kind: "Type",
       nameGroup: 1,
       detail: () => "struct",
@@ -692,6 +725,9 @@ function extractSymbols(masked: string, lineStarts: number[]) {
       const offset = match.index + match[0].lastIndexOf(name);
       const range = rangeFromOffset(lineStarts, offset, offset + name.length);
       note(spec.kind, name, spec.detail(match), range);
+      if (spec.kind === "Type" && /@message\b/.test(match[0])) {
+        lookup.messageNames.add(name);
+      }
 
       if (spec.bodyGroup === 2) {
         const body = match[2] || "";
@@ -744,6 +780,7 @@ function buildLookup(symbols: any[]) {
     byName: new Map<string, any>(),
     contractNames: new Set<string>(),
     typeNames: new Set<string>(),
+    messageNames: new Set<string>(),
     functionNames: new Set<string>(),
     parameterNames: new Set<string>(),
     variableNames: new Set<string>(),
@@ -763,6 +800,9 @@ function buildLookup(symbols: any[]) {
         break;
       case "Type":
         lookup.typeNames.add(symbol.name);
+        break;
+      case "Message":
+        lookup.messageNames.add(symbol.name);
         break;
       case "Function":
       case "Method":

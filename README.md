@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="./assets/aetralis.png" alt="Aetralis Language" width="140" />
-</p>
+![Aetralis Language](assets/atlx.png)
 
 # Aetralis Language
 

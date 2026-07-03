@@ -11,6 +11,7 @@ export const annotationNames = [
   "@external",
   "@bounced",
   "@get",
+  "@pure",
   "@impure",
   "@store"
 ] as const;
@@ -22,6 +23,7 @@ export const annotationDetails = new Map<string, string>([
   ["@external", "Marks an external message handler."],
   ["@bounced", "Marks a bounced message handler."],
   ["@get", "Marks a read-only getter."],
+  ["@pure", "Marks a pure function."],
   ["@impure", "Marks a function that may change chain-visible state."],
   ["@store", "Legacy storage helper annotation."]
 ]);
