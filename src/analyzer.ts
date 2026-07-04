@@ -637,6 +637,13 @@ function extractSymbols(masked: string, lineStarts: number[]) {
     constantNames: new Set<string>(),
     allNames: new Set<string>()
   };
+  const lines = lineStarts.map((start, index) => {
+    const end = index + 1 < lineStarts.length ? lineStarts[index + 1] - 1 : masked.length;
+    return masked.slice(start, end).replace(/\r$/, "");
+  });
+  const contexts: Array<{ kind: string; name: string; depth: number }> = [];
+  let depth = 0;
+  let pendingAnnotations: string[] = [];
 
   const note = (kind: string, name: string, detail: string, range: any, containerName?: string) => {
     const symbol = { kind, name, detail, range, selectionRange: range, containerName };
@@ -690,93 +697,122 @@ function extractSymbols(masked: string, lineStarts: number[]) {
     }
   };
 
-  const topLevelRegexes = [
-    {
-      pattern: /(?:^|\n)\s*type\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^\n]+)/g,
-      kind: "Type",
-      nameGroup: 1,
-      detail: (match: any) => `type alias = ${match[2].trim()}`
-    },
-    {
-      pattern: /(?:^|\n)\s*const\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^\n]+)/g,
-      kind: "Constant",
-      nameGroup: 1,
-      detail: (match: any) => `const = ${match[2].trim()}`
-    },
-    {
-      pattern: /(?:^|\n)\s*contract\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/g,
-      kind: "Class",
-      nameGroup: 1,
-      detail: () => "contract"
-    },
-    {
-      pattern: /(?:^|\n)\s*(?:@[A-Za-z_][A-Za-z0-9_]*(?:\([^)]*\))?\s*)*struct\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{([\s\S]*?)\}/g,
-      kind: "Type",
-      nameGroup: 1,
-      detail: () => "struct",
-      bodyGroup: 2
-    },
-    {
-      pattern: /(?:^|\n)\s*(?:@[A-Za-z_][A-Za-z0-9_]*(?:\([^)]*\))?\s*)*func\s+(?:(?:[A-Za-z_][A-Za-z0-9_]*)\.)?([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*(?:->\s*([^{\n]+))?/g,
-      kind: "Function",
-      nameGroup: 1,
-      paramsGroup: 2,
-      returnGroup: 3,
-      detail: (match: any) => signatureText("func", match[1], match[2] || "", (match[3] || "").trim())
-    }
-  ];
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+    const line = lines[lineIndex];
+    const lineStart = lineStarts[lineIndex] || 0;
+    const trimmed = line.trim();
+    const currentContext = contexts.length ? contexts[contexts.length - 1] : null;
+    const lineAnnotations = collectAnnotations(line);
+    const combinedAnnotations = pendingAnnotations.length ? [...pendingAnnotations, ...lineAnnotations] : lineAnnotations;
 
-  for (const spec of topLevelRegexes) {
-    for (const match of masked.matchAll(spec.pattern)) {
-      const name = match[spec.nameGroup || 1];
-      const offset = match.index + match[0].lastIndexOf(name);
-      const range = rangeFromOffset(lineStarts, offset, offset + name.length);
-      note(spec.kind, name, spec.detail(match), range);
-      if (spec.kind === "Type" && /@message\b/.test(match[0])) {
-        lookup.messageNames.add(name);
+    if (trimmed === "") {
+      pendingAnnotations = [];
+      depth += braceDelta(line);
+      while (contexts.length && contexts[contexts.length - 1].depth > depth) {
+        contexts.pop();
       }
+      continue;
+    }
 
-      if (spec.bodyGroup === 2) {
-        const body = match[2] || "";
-        if (match[0].includes("struct ")) {
-          for (const field of body.matchAll(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([^=\n]+?)(?:\s*=\s*([^\n]+))?\s*;?\s*$/gm)) {
-            const fieldName = field[1];
-            const fieldOffset = match.index + match[0].indexOf(field[0]) + field[0].indexOf(fieldName);
-            note("Field", fieldName, `field: ${field[2].trim()}`, rangeFromOffset(lineStarts, fieldOffset, fieldOffset + fieldName.length), name);
+    const parsed = splitLeadingAnnotations(trimmed);
+    const declarationText = parsed.rest.trimStart();
+    const declarationOffset = line.indexOf(declarationText);
+    const declarationAnnotations = [...pendingAnnotations, ...parsed.annotations];
+
+    if (declarationText === "") {
+      pendingAnnotations = declarationAnnotations;
+      depth += braceDelta(line);
+      while (contexts.length && contexts[contexts.length - 1].depth > depth) {
+        contexts.pop();
+      }
+      continue;
+    }
+
+    if (depth === 0) {
+      const typeAlias = declarationText.match(/^type\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^\n]+)/);
+      if (typeAlias) {
+        const name = typeAlias[1];
+        const offset = lineStart + declarationOffset + declarationText.indexOf(name);
+        note("Type", name, `type alias = ${typeAlias[2].trim()}`, rangeFromOffset(lineStarts, offset, offset + name.length));
+      } else {
+        const constant = declarationText.match(/^const\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^\n]+)/);
+        if (constant) {
+          const name = constant[1];
+          const offset = lineStart + declarationOffset + declarationText.indexOf(name);
+          note("Constant", name, `const = ${constant[2].trim()}`, rangeFromOffset(lineStarts, offset, offset + name.length));
+        } else {
+          const contract = declarationText.match(/^contract\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/);
+          if (contract) {
+            const name = contract[1];
+            const offset = lineStart + declarationOffset + declarationText.indexOf(name);
+            note("Class", name, "contract", rangeFromOffset(lineStarts, offset, offset + name.length));
+            const nextDepth = depth + braceDelta(line);
+            if (nextDepth > depth) {
+              contexts.push({ kind: "Class", name, depth: nextDepth });
+            }
+          } else {
+            const struct = declarationText.match(/^struct\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/);
+            if (struct) {
+              const name = struct[1];
+              const kind = declarationAnnotations.includes("@message") ? "Message" : "Type";
+              const detail = kind === "Message" ? "message" : "struct";
+              const offset = lineStart + declarationOffset + declarationText.indexOf(name);
+              note(kind, name, detail, rangeFromOffset(lineStarts, offset, offset + name.length));
+              if (kind === "Message") {
+                lookup.messageNames.add(name);
+              }
+              const nextDepth = depth + braceDelta(line);
+              if (nextDepth > depth) {
+                contexts.push({ kind, name, depth: nextDepth });
+              }
+            }
           }
         }
       }
+    }
 
-      const paramsText = spec.paramsGroup ? (match[spec.paramsGroup] || "") : "";
-      if (spec.kind === "Function" && paramsText) {
+    if (currentContext && (currentContext.kind === "Class" || currentContext.kind === "Type" || currentContext.kind === "Message") && depth === currentContext.depth) {
+      const field = declarationText.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([^\n]+?)(?:\s*=\s*([^\n]+))?\s*;?\s*$/);
+      if (field) {
+        const fieldName = field[1];
+        const fieldType = field[2].trim();
+        const fieldOffset = lineStart + declarationOffset + declarationText.indexOf(fieldName);
+        note("Field", fieldName, `field: ${fieldType}`, rangeFromOffset(lineStarts, fieldOffset, fieldOffset + fieldName.length), currentContext.name);
+      }
+    }
+
+    if (!currentContext || currentContext.kind !== "Function") {
+      const func = declarationText.match(/^func\s+(?:(?:[A-Za-z_][A-Za-z0-9_]*)\.)?([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*(?:->\s*([^{\n]+))?/);
+      if (func && (depth === 0 || (currentContext && currentContext.depth === depth && (currentContext.kind === "Class" || currentContext.kind === "Type" || currentContext.kind === "Message")))) {
+        const name = func[1];
+        const paramsText = func[2] || "";
+        const returnType = (func[3] || "").trim();
+        const offset = lineStart + declarationOffset + declarationText.indexOf(name);
+        note("Function", name, signatureText("func", name, paramsText, returnType), rangeFromOffset(lineStarts, offset, offset + name.length));
         for (const param of extractNamedEntries(paramsText)) {
-          const paramOffset = match.index + match[0].indexOf(paramsText) + paramsText.indexOf(param.name);
+          const paramOffset = lineStart + declarationOffset + declarationText.indexOf(paramsText) + paramsText.indexOf(param.name);
           note("Parameter", param.name, `param: ${param.type}`, rangeFromOffset(lineStarts, paramOffset, paramOffset + param.name.length), name);
         }
-      }
-
-      if (spec.kind === "Function") {
-        const annotations = collectAnnotations(match[0]);
-        validateReservedHandlerUsage(name, annotations, paramsText, range, diagnostics);
+        validateReservedHandlerUsage(name, declarationAnnotations, paramsText, rangeFromOffset(lineStarts, offset, offset + name.length), diagnostics);
+        const nextDepth = depth + braceDelta(line);
+        if (nextDepth > depth) {
+          contexts.push({ kind: "Function", name, depth: nextDepth });
+        }
       }
     }
-  }
 
-  for (const match of masked.matchAll(/\bcontract\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/g)) {
-    const contractName = match[1];
-    const contractBodyStart = match.index + match[0].length;
-    const region = contractFieldRegion(masked.slice(contractBodyStart));
-    for (const field of region.matchAll(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([^\n]+)$/gm)) {
-      const fieldName = field[1];
-      const fieldOffset = contractBodyStart + field.index + field[0].indexOf(fieldName);
-      note("Field", fieldName, `contract field: ${field[2].trim()}`, rangeFromOffset(lineStarts, fieldOffset, fieldOffset + fieldName.length), contractName);
+    const localVarMatches = declarationText.matchAll(/\b(?:var|val)\s+([A-Za-z_][A-Za-z0-9_]*)/g);
+    for (const match of localVarMatches) {
+      const name = match[1];
+      const offset = lineStart + declarationOffset + declarationText.indexOf(match[0]) + match[0].lastIndexOf(name);
+      note("Variable", name, "local variable", rangeFromOffset(lineStarts, offset, offset + name.length));
     }
-  }
 
-  for (const match of masked.matchAll(/\b(?:var|val)\s+([A-Za-z_][A-Za-z0-9_]*)/g)) {
-    const name = match[1];
-    const offset = match.index + match[0].lastIndexOf(name);
-    note("Variable", name, "local variable", rangeFromOffset(lineStarts, offset, offset + name.length));
+    pendingAnnotations = declarationText.startsWith("@") ? declarationAnnotations : [];
+    depth += braceDelta(line);
+    while (contexts.length && contexts[contexts.length - 1].depth > depth) {
+      contexts.pop();
+    }
   }
 
   return { symbols, lookup, diagnostics };
@@ -894,12 +930,6 @@ function normalizeSignatureText(text: string) {
 function signatureText(prefix: string, name: string, params: string, returnType: string) {
   const suffix = returnType ? ` -> ${returnType}` : "";
   return `${prefix} ${name}(${params})${suffix}`;
-}
-
-function contractFieldRegion(body: string) {
-  const candidates = [body.search(/\n\s*@/), body.search(/\n\s*func\b/), body.search(/\n\s*}/)].filter((offset) => offset >= 0);
-  const end = candidates.length ? Math.min(...candidates) : body.length;
-  return body.slice(0, end);
 }
 
 function isReservedSymbolName(name: string) {
@@ -1452,4 +1482,32 @@ function isDigit(ch: string) {
 
 function isHexDigit(ch: string) {
   return /[0-9A-Fa-f]/.test(ch);
+}
+
+function splitLeadingAnnotations(text: string) {
+  const annotations: string[] = [];
+  let rest = text;
+
+  while (rest.startsWith("@")) {
+    const match = rest.match(/^@([A-Za-z_][A-Za-z0-9_]*)(?:\(([^)]*)\))?\s*/);
+    if (!match) {
+      break;
+    }
+    annotations.push(`@${match[1]}`);
+    rest = rest.slice(match[0].length);
+  }
+
+  return { annotations, rest };
+}
+
+function braceDelta(line: string) {
+  let delta = 0;
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] === "{") {
+      delta++;
+    } else if (line[i] === "}") {
+      delta--;
+    }
+  }
+  return delta;
 }
