@@ -7,20 +7,25 @@ test("language-specific defaults lock the requested colors", () => {
   assert.ok(defaults, "missing [atlx] defaults");
 
   const semanticRules = defaults["editor.semanticTokenColorCustomizations"].rules;
-  assert.equal(semanticRules.annotation, "#39d5d0");
-  assert.equal(semanticRules.assertKeyword, "#c792ea");
-  assert.equal(semanticRules.property, "#6bd6ff");
+  assert.equal(semanticRules.annotation, "#56b6c2");
+  assert.equal(semanticRules.declarationKeyword, "#c678dd");
+  assert.equal(semanticRules.controlKeyword, "#e06c75");
+  assert.equal(semanticRules.abortKeyword, "#e06c75");
+  assert.equal(semanticRules.bindingKeyword, "#e5c07b");
+  assert.equal(semanticRules.sideEffectKeyword, "#56b6c2");
+  assert.equal(semanticRules.deprecated, "#7f848e");
+  assert.equal(semanticRules.type, "#61afef");
+  assert.equal(semanticRules.builtinType, "#61afef");
+  assert.equal(semanticRules.contractName, "#61afef");
+  assert.equal(semanticRules.builtin, "#56b6c2");
+  assert.equal(semanticRules.function, "#d19a66");
+  assert.equal(semanticRules.parameter, "#e5c07b");
+  assert.equal(semanticRules.variable, "#abb2bf");
+  assert.equal(semanticRules.property, "#abb2bf");
+  assert.equal(semanticRules.constant, "#98c379");
+  assert.equal(semanticRules.enumMember, "#98c379");
+  assert.equal(semanticRules.operator, "#7f848e");
   assert.equal(semanticRules.string, "#d8c6a0");
-  assert.equal(semanticRules.functionKeyword, "#ff8fab");
-  assert.equal(semanticRules.type, "#8dff9f");
-  assert.equal(semanticRules.builtinType, "#ffb86b");
-  assert.equal(semanticRules.messageName, "#8dff9f");
-  assert.equal(semanticRules.contractKeyword, "#ff8fab");
-  assert.equal(semanticRules.storageKeyword, "#6bd6ff");
-  assert.equal(semanticRules.controlKeyword, "#c792ea");
-  assert.equal(semanticRules.contractName, "#8dff9f");
-  assert.equal(semanticRules.function, "#c77dff");
-  assert.equal(semanticRules.builtin, "#ffd60a");
 });
 
 test("language icon points at atlx artwork", () => {
@@ -34,30 +39,31 @@ test("extension does not contribute icon themes", () => {
   assert.ok(!packageJson.contributes.iconThemes, "icon themes should not be contributed");
 });
 
-test("textmate fallback rules cover annotations, metadata, fields, and controls", () => {
+test("textmate fallback rules cover annotations, declarations, types, and deprecated compatibility", () => {
   const defaults = packageJson.configurationDefaults["[atlx]"];
   const rules = defaults["editor.tokenColorCustomizations"].textMateRules;
 
   const annotationRule = rules.find((rule) => rule.scope.includes("entity.other.attribute-name.atlx"));
   assert.ok(annotationRule, "missing annotation scope fallback");
 
-  const metadataRule = rules.find((rule) => rule.scope.includes("entity.name.variable.contract-field.atlx"));
-  assert.ok(metadataRule, "missing metadata/field scope fallback");
+  const declarationRule = rules.find((rule) => rule.scope.includes("keyword.declaration.atlx"));
+  assert.ok(declarationRule, "missing declaration scope fallback");
 
-  const assertRule = rules.find((rule) => rule.scope.includes("keyword.control.assert.atlx"));
-  assert.ok(assertRule, "missing assert scope fallback");
+  const deprecatedRule = rules.find((rule) => rule.scope.includes("invalid.deprecated.atlx"));
+  assert.ok(deprecatedRule, "missing deprecated scope fallback");
+
   const builtinTypeRule = rules.find((rule) => rule.scope.includes("storage.type.builtin.atlx"));
   assert.ok(builtinTypeRule, "missing builtin type scope fallback");
 
-  assert.equal(annotationRule.settings.foreground, "#39d5d0");
-  assert.equal(metadataRule.settings.foreground, "#6bd6ff");
-  assert.equal(assertRule.settings.foreground, "#c792ea");
-  assert.equal(builtinTypeRule.settings.foreground, "#ffb86b");
+  assert.equal(annotationRule.settings.foreground, "#56b6c2");
+  assert.equal(declarationRule.settings.foreground, "#c678dd");
+  assert.equal(deprecatedRule.settings.foreground, "#7f848e");
+  assert.equal(builtinTypeRule.settings.foreground, "#61afef");
 });
 
 test("semantic token legend includes the emitted token types", () => {
   const tokenTypes = packageJson.contributes.semanticTokenTypes.map((entry) => entry.id);
-  for (const id of ["assertKeyword", "type", "builtinType", "function", "parameter", "variable", "property", "number", "operator", "messageName"]) {
+  for (const id of ["declarationKeyword", "controlKeyword", "abortKeyword", "bindingKeyword", "sideEffectKeyword", "deprecated", "type", "builtinType", "function", "parameter", "variable", "property", "constant", "enumMember", "number", "operator"]) {
     assert.ok(tokenTypes.includes(id), `missing semantic token type ${id}`);
   }
 });

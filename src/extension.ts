@@ -204,6 +204,8 @@ function symbolKindFromName(kind: string) {
       return vscode.SymbolKind.TypeParameter;
     case "Constant":
       return vscode.SymbolKind.Constant;
+    case "EnumMember":
+      return vscode.SymbolKind.EnumMember;
     default:
       return vscode.SymbolKind.Property;
   }
@@ -227,6 +229,8 @@ function completionKindFromName(kind: string) {
       return vscode.CompletionItemKind.Variable;
     case "Constant":
       return vscode.CompletionItemKind.Constant;
+    case "EnumMember":
+      return vscode.CompletionItemKind.EnumMember;
     case "Class":
       return vscode.CompletionItemKind.Class;
     case "Property":

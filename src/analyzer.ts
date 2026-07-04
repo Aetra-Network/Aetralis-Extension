@@ -2,29 +2,33 @@ import {
   annotationDetails,
   annotationNames,
   annotationTemplates,
-  builtinConstants,
+  abortKeywords,
+  bindingKeywords,
+  builtinHelpers,
+  builtinMemberHelpers,
   builtinTypes,
-  builtins,
+  compatibilityAnnotations,
+  compatibilityNames,
   controlKeywords,
   createMessageFields,
   declarationKeywords,
   metadataKeywords,
-  bounceModeMembers,
   makeSet,
-  memberCompletions,
   reservedHandlerNames
 } from "./language-data";
 
-const IMPLICIT_NAMES = new Set(["state", "contract", "msg", "self", "this", "in", "out"]);
-
 const DECLARATION_KEYWORDS: Set<string> = makeSet(declarationKeywords as readonly string[]);
 const CONTROL_KEYWORDS: Set<string> = makeSet(controlKeywords as readonly string[]);
+const ABORT_KEYWORDS: Set<string> = makeSet(abortKeywords as readonly string[]);
+const BINDING_KEYWORDS: Set<string> = makeSet(bindingKeywords as readonly string[]);
 const METADATA_KEYWORDS: Set<string> = makeSet(metadataKeywords as readonly string[]);
-const BUILTINS: Set<string> = makeSet(builtins as readonly string[]);
-const BUILTIN_CONSTANTS: Set<string> = makeSet(builtinConstants as readonly string[]);
-const BOUNCE_MODE_MEMBERS: Set<string> = makeSet(bounceModeMembers as readonly string[]);
+const BUILTINS: Set<string> = makeSet(builtinHelpers as readonly string[]);
 const BUILTIN_TYPES: Set<string> = makeSet(builtinTypes as readonly string[]);
-const CONTRACT_MEMBER_FUNCTIONS: Set<string> = makeSet(["getData", "setData"] as readonly string[]);
+const COMPATIBILITY_NAMES: Set<string> = makeSet(compatibilityNames as readonly string[]);
+const COMPATIBILITY_ANNOTATIONS: Set<string> = makeSet(compatibilityAnnotations as readonly string[]);
+const BUILTIN_MEMBER_FUNCTIONS: Set<string> = makeSet([
+  ...Object.values(builtinMemberHelpers).flat().map((entry) => entry.label)
+] as readonly string[]);
 
 const ANNOTATION_ORDER = annotationNames;
 const ANNOTATION_HELP = annotationDetails;
@@ -47,22 +51,22 @@ export const SEMANTIC_TOKEN_TYPES = [
   "comment",
   "string",
   "annotation",
-  "contractKeyword",
-  "typeKeyword",
-  "storageKeyword",
-  "assertKeyword",
+  "declarationKeyword",
   "controlKeyword",
+  "abortKeyword",
+  "bindingKeyword",
+  "sideEffectKeyword",
+  "deprecated",
   "type",
   "builtinType",
   "contractName",
-  "functionKeyword",
-  "messageName",
   "builtin",
   "function",
   "parameter",
   "variable",
   "property",
   "constant",
+  "enumMember",
   "number",
   "operator"
 ] as const;
@@ -105,7 +109,14 @@ export function getHoverMarkdown(analysis: any, position: any) {
     return "String literal";
   }
 
-  if (token.kind === "keyword") {
+  if (
+    token.kind === "declarationKeyword" ||
+    token.kind === "controlKeyword" ||
+    token.kind === "abortKeyword" ||
+    token.kind === "bindingKeyword" ||
+    token.kind === "sideEffectKeyword" ||
+    token.kind === "deprecated"
+  ) {
     return `**${token.text}**  \n${keywordHelp(token.text)}`;
   }
 
@@ -113,8 +124,8 @@ export function getHoverMarkdown(analysis: any, position: any) {
     return `**${token.text}**  \n${BUILTIN_HELP[token.text] || "Built-in runtime helper."}`;
   }
 
-  if (token.kind === "constant" && BUILTIN_CONSTANTS.has(token.text)) {
-    return `**${token.text}**  \nBuilt-in send mode constant.`;
+  if (token.kind === "builtinType") {
+    return `**${token.text}**  \nBuilt-in type.`;
   }
 
   const symbol = analysis.lookup.byName.get(token.text);
@@ -192,6 +203,9 @@ export function getSemanticTokens(analysis: any) {
 }
 
 function semanticTypeForToken(token: any, lookup: any, tokens: any, index: number) {
+  const previous = previousSignificantToken(tokens, index);
+  const next = nextSignificantToken(tokens, index);
+
   if (token.kind === "comment") {
     return "comment";
   }
@@ -201,23 +215,37 @@ function semanticTypeForToken(token: any, lookup: any, tokens: any, index: numbe
   if (token.kind === "annotation") {
     return "annotation";
   }
-  if (token.kind === "builtin") {
-    return "builtin";
-  }
-  if (token.kind === "type") {
+  if (token.kind === "builtinType") {
+    if ((token.text === "hash" || token.text === "address" || token.text === "aet") && next && next.kind === "operator" && next.text === "(") {
+      return "builtin";
+    }
+    if (previous && previous.kind === "operator" && previous.text === "." && BUILTIN_MEMBER_FUNCTIONS.has(token.text)) {
+      return "builtin";
+    }
     return "builtinType";
   }
-  if (token.kind === "function") {
-    return "function";
+  if (next && next.kind === "operator" && next.text === ":") {
+    return "property";
   }
-  if (token.kind === "parameter") {
-    return "parameter";
-  }
-  if (token.kind === "variable") {
-    return "variable";
-  }
-  if (token.kind === "constant") {
-    return "constant";
+  if (
+    token.kind === "declarationKeyword" ||
+    token.kind === "controlKeyword" ||
+    token.kind === "abortKeyword" ||
+    token.kind === "bindingKeyword" ||
+    token.kind === "sideEffectKeyword" ||
+    token.kind === "deprecated" ||
+    token.kind === "builtinType" ||
+    token.kind === "builtin" ||
+    token.kind === "function" ||
+    token.kind === "parameter" ||
+    token.kind === "variable" ||
+    token.kind === "property" ||
+    token.kind === "constant" ||
+    token.kind === "enumMember" ||
+    token.kind === "type" ||
+    token.kind === "contractName"
+  ) {
+    return token.kind;
   }
   if (token.kind === "number") {
     return "number";
@@ -225,60 +253,17 @@ function semanticTypeForToken(token: any, lookup: any, tokens: any, index: numbe
   if (token.kind === "operator") {
     return "operator";
   }
-  if (token.kind === "property") {
-    return "property";
-  }
-  if (token.kind === "keyword") {
-    if (DECLARATION_KEYWORDS.has(token.text)) {
-      if (token.text === "contract") {
-        return "contractKeyword";
-      }
-      if (token.text === "type") {
-        return "typeKeyword";
-      }
-      if (token.text === "struct") {
-        return "typeKeyword";
-      }
-      if (token.text === "func") {
-        return "functionKeyword";
-      }
-      if (token.text === "const" || token.text === "var" || token.text === "val") {
-        return "storageKeyword";
-      }
-      return "storageKeyword";
-    }
-    if (CONTROL_KEYWORDS.has(token.text)) {
-      if (token.text === "var" || token.text === "val") {
-        return "storageKeyword";
-      }
-      if (token.text === "assert") {
-        return "assertKeyword";
-      }
-      return "controlKeyword";
-    }
-    if (METADATA_KEYWORDS.has(token.text)) {
-      return "property";
-    }
-    return "controlKeyword";
-  }
   if (token.kind !== "identifier") {
     return null;
   }
-  if (BUILTINS.has(token.text)) {
+  if (previous && previous.kind === "operator" && previous.text === "." && BUILTIN_MEMBER_FUNCTIONS.has(token.text)) {
     return "builtin";
   }
-  if (BUILTIN_CONSTANTS.has(token.text)) {
-    return "constant";
-  }
-  if (BOUNCE_MODE_MEMBERS.has(token.text)) {
-    return "constant";
+  if ((next && next.kind === "operator" && next.text === "(") && BUILTINS.has(token.text)) {
+    return "builtin";
   }
   if (lookup.messageNames && lookup.messageNames.has(token.text)) {
-    return "messageName";
-  }
-  const previous = previousSignificantToken(tokens, index);
-  if (previous && previous.kind === "operator" && previous.text === "." && CONTRACT_MEMBER_FUNCTIONS.has(token.text)) {
-    return "builtin";
+    return "enumMember";
   }
   if (lookup.contractNames && lookup.contractNames.has(token.text)) {
     return "contractName";
@@ -304,8 +289,11 @@ function semanticTypeForToken(token: any, lookup: any, tokens: any, index: numbe
   if (lookup.constantNames.has(token.text)) {
     return "constant";
   }
-  if (IMPLICIT_NAMES.has(token.text)) {
-    return "variable";
+  if (BUILTINS.has(token.text)) {
+    return "builtin";
+  }
+  if (COMPATIBILITY_NAMES.has(token.text)) {
+    return "deprecated";
   }
   return null;
 }
@@ -451,9 +439,10 @@ function scanDocument(text: string, lineStarts: number[]) {
           i++;
         }
       }
+      const annotationText = text.slice(begin, i);
       tokens.push({
-        kind: "annotation",
-        text: text.slice(begin, i),
+        kind: COMPATIBILITY_ANNOTATIONS.has(annotationText) ? "deprecated" : "annotation",
+        text: annotationText,
         start,
         end: offsetToPosition(lineStarts, i)
       });
@@ -662,6 +651,9 @@ function extractSymbols(masked: string, lineStarts: number[]) {
       case "Message":
         lookup.messageNames.add(name);
         break;
+      case "EnumMember":
+        lookup.messageNames.add(name);
+        break;
       case "Function":
       case "Method":
         lookup.functionNames.add(name);
@@ -765,6 +757,29 @@ function extractSymbols(masked: string, lineStarts: number[]) {
               if (nextDepth > depth) {
                 contexts.push({ kind, name, depth: nextDepth });
               }
+            } else {
+              const message = declarationText.match(/^message\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/);
+              if (message) {
+                const name = message[1];
+                const offset = lineStart + declarationOffset + declarationText.indexOf(name);
+                note("Message", name, "message", rangeFromOffset(lineStarts, offset, offset + name.length));
+                lookup.messageNames.add(name);
+                const nextDepth = depth + braceDelta(line);
+                if (nextDepth > depth) {
+                  contexts.push({ kind: "Message", name, depth: nextDepth });
+                }
+              } else {
+                const enumDecl = declarationText.match(/^enum\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/);
+                if (enumDecl) {
+                  const name = enumDecl[1];
+                  const offset = lineStart + declarationOffset + declarationText.indexOf(name);
+                  note("Type", name, "enum", rangeFromOffset(lineStarts, offset, offset + name.length));
+                  const nextDepth = depth + braceDelta(line);
+                  if (nextDepth > depth) {
+                    contexts.push({ kind: "Enum", name, depth: nextDepth });
+                  }
+                }
+              }
             }
           }
         }
@@ -778,6 +793,15 @@ function extractSymbols(masked: string, lineStarts: number[]) {
         const fieldType = field[2].trim();
         const fieldOffset = lineStart + declarationOffset + declarationText.indexOf(fieldName);
         note("Field", fieldName, `field: ${fieldType}`, rangeFromOffset(lineStarts, fieldOffset, fieldOffset + fieldName.length), currentContext.name);
+      }
+    }
+
+    if (currentContext && currentContext.kind === "Enum" && depth === currentContext.depth) {
+      const variant = declarationText.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*(?:=.*)?[,]?$/);
+      if (variant) {
+        const variantName = variant[1];
+        const variantOffset = lineStart + declarationOffset + declarationText.indexOf(variantName);
+        note("EnumMember", variantName, "enum member", rangeFromOffset(lineStarts, variantOffset, variantOffset + variantName.length), currentContext.name);
       }
     }
 
@@ -845,6 +869,7 @@ function buildLookup(symbols: any[]) {
         lookup.typeNames.add(symbol.name);
         break;
       case "Message":
+      case "EnumMember":
         lookup.messageNames.add(symbol.name);
         break;
       case "Function":
@@ -936,9 +961,11 @@ function isReservedSymbolName(name: string) {
   const keywordNames = new Set([
     ...DECLARATION_KEYWORDS,
     ...CONTROL_KEYWORDS,
+    ...ABORT_KEYWORDS,
+    ...BINDING_KEYWORDS,
     ...BUILTINS,
-    ...BUILTIN_CONSTANTS,
-    ...BUILTIN_TYPES
+    ...BUILTIN_TYPES,
+    ...COMPATIBILITY_NAMES
   ]);
   return keywordNames.has(name);
 }
@@ -948,12 +975,15 @@ function findUnknownIdentifiers(tokens: any[], lookup: any) {
   const known = new Set([
     ...DECLARATION_KEYWORDS,
     ...CONTROL_KEYWORDS,
+    ...ABORT_KEYWORDS,
+    ...BINDING_KEYWORDS,
+    "emit",
+    "send",
+    "refund",
     ...METADATA_KEYWORDS,
     ...BUILTINS,
-    ...BUILTIN_CONSTANTS,
-    ...BOUNCE_MODE_MEMBERS,
     ...BUILTIN_TYPES,
-    ...IMPLICIT_NAMES,
+    ...COMPATIBILITY_NAMES,
     ...lookup.allNames
   ]);
 
@@ -974,7 +1004,7 @@ function findUnknownIdentifiers(tokens: any[], lookup: any) {
       continue;
     }
 
-    const suggestion = closestName(token.text, [...lookup.allNames, ...BUILTINS, ...BUILTIN_CONSTANTS, ...BUILTIN_TYPES, ...IMPLICIT_NAMES]);
+    const suggestion = closestName(token.text, [...lookup.allNames, ...BUILTINS, ...BUILTIN_TYPES, ...COMPATIBILITY_NAMES]);
     diagnostics.push({
       severity: "warning",
       code: "W_UNKNOWN_IDENTIFIER",
@@ -1086,7 +1116,7 @@ function memberCompletionItems(beforeCursor: string, prefix: string) {
     return [];
   }
   const base = match[1];
-  const items = memberCompletions[base];
+  const items = builtinMemberHelpers[base];
   if (!items) {
     return [];
   }
@@ -1101,26 +1131,35 @@ function memberCompletionItems(beforeCursor: string, prefix: string) {
 }
 
 function classifyWord(word: string) {
-  if (DECLARATION_KEYWORDS.has(word) || CONTROL_KEYWORDS.has(word)) {
-    return "keyword";
-  }
   if (METADATA_KEYWORDS.has(word)) {
-    return "keyword";
+    return "property";
+  }
+  if (DECLARATION_KEYWORDS.has(word)) {
+    return "declarationKeyword";
+  }
+  if (CONTROL_KEYWORDS.has(word)) {
+    return "controlKeyword";
+  }
+  if (ABORT_KEYWORDS.has(word)) {
+    return "abortKeyword";
+  }
+  if (BINDING_KEYWORDS.has(word)) {
+    return "bindingKeyword";
+  }
+  if (word === "emit" || word === "send" || word === "refund") {
+    return "sideEffectKeyword";
   }
   if (BUILTINS.has(word)) {
     return "builtin";
   }
-  if (BUILTIN_CONSTANTS.has(word)) {
-    return "constant";
-  }
-  if (BOUNCE_MODE_MEMBERS.has(word)) {
-    return "constant";
-  }
   if (BUILTIN_TYPES.has(word)) {
-    return "type";
+    return "builtinType";
   }
   if (word === "true" || word === "false" || word === "null") {
     return "constant";
+  }
+  if (COMPATIBILITY_NAMES.has(word)) {
+    return "deprecated";
   }
   return "identifier";
 }
@@ -1128,14 +1167,50 @@ function classifyWord(word: string) {
 function keywordHelp(word: string) {
   if (DECLARATION_KEYWORDS.has(word)) {
     switch (word) {
+      case "package":
+        return "Declares a package.";
+      case "import":
+        return "Imports a module or symbol.";
       case "contract":
         return "Declares a contract.";
+      case "enum":
+        return "Declares an enum.";
       case "type":
         return "Declares a type alias.";
       case "struct":
         return "Declares a struct type.";
       case "func":
         return "Declares a function.";
+      case "storage":
+        return "Declares persistent storage.";
+      case "deploy":
+        return "Marks a deployment declaration.";
+      case "message":
+        return "Declares a message body or message kind.";
+      case "getter":
+        return "Declares a getter.";
+      case "event":
+        return "Declares an event.";
+      case "wallet":
+        return "Declares a wallet-related symbol.";
+      case "action":
+        return "Declares an action.";
+      case "namespace":
+        return "Declares a namespace.";
+      case "chain":
+        return "Declares a chain-scoped symbol.";
+      case "deployer":
+        return "Declares a deployer-scoped symbol.";
+      case "salt":
+        return "Declares a salt-scoped symbol.";
+      case "initial_balance":
+        return "Declares an initial balance binding.";
+      case "selector":
+        return "Declares a selector.";
+      case "version":
+        return "Declares a version value.";
+      case "as":
+        return "Alias keyword.";
       default:
         return "Declaration keyword.";
     }
@@ -1157,6 +1232,21 @@ function keywordHelp(word: string) {
       return "Assertion keyword.";
     }
     return "Control-flow keyword.";
+  }
+  if (ABORT_KEYWORDS.has(word)) {
+    return word === "assert" ? "Assertion keyword." : "Abort keyword.";
+  }
+  if (BINDING_KEYWORDS.has(word)) {
+    return "Binding keyword.";
+  }
+  if (word === "emit" || word === "send" || word === "refund") {
+    return "Side-effect keyword.";
+  }
+  if (COMPATIBILITY_NAMES.has(word)) {
+    return "Legacy compatibility token.";
+  }
+  if (COMPATIBILITY_ANNOTATIONS.has(word)) {
+    return "Legacy compatibility annotation.";
   }
   if (word === "true" || word === "false" || word === "null") {
     return "Literal constant.";
@@ -1188,7 +1278,7 @@ function annotationCompletionItems(prefix: string) {
 }
 
 function createMessageCompletionItems(beforeCursor: string, prefix: string) {
-  if (!/createMessage\s*\(\s*\{[\s\S]*$/.test(beforeCursor)) {
+  if (!/(?:buildMessage|createMessage)\s*\(\s*\{[\s\S]*$/.test(beforeCursor)) {
     return [];
   }
   return createMessageFields.map((field) => makeCompletionItem(field.label, "Property", prefix, field.detail)).filter(Boolean);
@@ -1209,6 +1299,8 @@ function symbolKindToCompletionKind(kind: string) {
       return "Field";
     case "Constant":
       return "Constant";
+    case "EnumMember":
+      return "EnumMember";
     case "Type":
       return "TypeParameter";
     default:

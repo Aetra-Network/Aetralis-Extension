@@ -1,15 +1,17 @@
 {
   "name": "Aetralis",
   "scopeName": "source.atlx",
-    "patterns": [
-      { "include": "#comments" },
-      { "include": "#strings" },
-      { "include": "#annotations" },
-      { "include": "#contractFields" },
-      { "include": "#metadata" },
-      { "include": "#declarations" },
-      { "include": "#keywords" },
-      { "include": "#members" },
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#compatibilityAnnotations" },
+    { "include": "#annotations" },
+    { "include": "#contractFields" },
+    { "include": "#metadata" },
+    { "include": "#declarations" },
+    { "include": "#compatibilityKeywords" },
+    { "include": "#keywords" },
+    { "include": "#members" },
     { "include": "#builtins" },
     { "include": "#types" },
     { "include": "#literals" },
@@ -65,6 +67,14 @@
         }
       ]
     },
+    "compatibilityAnnotations": {
+      "patterns": [
+        {
+          "name": "invalid.deprecated.atlx",
+          "match": "@store\\b"
+        }
+      ]
+    },
     "annotations": {
       "patterns": [
         {
@@ -102,6 +112,15 @@
           }
         },
         {
+          "name": "meta.declaration.enum.atlx",
+          "match": "\\benum\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.enum.atlx"
+            }
+          }
+        },
+        {
           "name": "meta.declaration.type-alias.atlx",
           "match": "\\btype\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*=",
           "captures": {
@@ -134,31 +153,35 @@
         }
       ]
     },
+    "compatibilityKeywords": {
+      "patterns": [
+        {
+          "name": "invalid.deprecated.atlx",
+          "match": "\\b(?:let|val|mut|slice|cell|isSlice|isSliceSignatureValid|getData|setData|createMessage|commit|skipBouncedPrefix|fromSegment|isEmpty|send)\\b"
+        }
+      ]
+    },
     "keywords": {
       "patterns": [
         {
-          "name": "keyword.declaration.contract.atlx",
-          "match": "\\bcontract\\b"
+          "name": "keyword.declaration.atlx",
+          "match": "\\b(?:package|import|contract|struct|enum|type|func|storage|deploy|message|getter|event|wallet|action|namespace|chain|deployer|salt|initial_balance|selector|version|as)\\b"
         },
         {
-          "name": "keyword.declaration.type.atlx",
-          "match": "\\b(?:type|struct)\\b"
-        },
-        {
-          "name": "keyword.declaration.storage.atlx",
-          "match": "\\b(?:const|var|val)\\b"
-        },
-        {
-          "name": "keyword.declaration.function.atlx",
-          "match": "\\bfunc\\b"
+          "name": "keyword.control.atlx",
+          "match": "\\b(?:if|else|while|do|repeat|for|in|to|match|case|return|break|continue)\\b"
         },
         {
           "name": "keyword.control.assert.atlx",
-          "match": "\\bassert\\b"
+          "match": "\\b(?:assert|throw)\\b"
         },
         {
-          "name": "keyword.control.flow.atlx",
-          "match": "\\b(?:if|else|match|case|return|throw|lazy|mutate)\\b"
+          "name": "keyword.declaration.binding.atlx",
+          "match": "\\b(?:const|var|lazy|mutate|self|set)\\b"
+        },
+        {
+          "name": "keyword.other.side-effect.atlx",
+          "match": "\\b(?:emit|send|refund)\\b"
         }
       ]
     },
@@ -179,7 +202,11 @@
       "patterns": [
         {
           "name": "support.function.builtin.atlx",
-          "match": "\\b(?:now|getBalance|random|createMessage|commit|skipBouncedPrefix|fromSegment|fromChunk|toChunk|isEmpty|send)\\b"
+          "match": "\\b(?:buildMessage|counterfactualAddress|autoDeployAddress|getAddress|getOriginalBalance|getAttachedValue|getCode|setCodePostponed|now|logicalTime|currentBlockLogicalTime|random|isSignatureValid|fromChunk|toChunk|address|aet)\\b"
+        },
+        {
+          "name": "support.function.builtin.atlx",
+          "match": "\\b(?:Storage\\.(?:load|save)|random\\.(?:initialize|initializeBy|uint256|range|getSeed|setSeed)|Code\\.(?:fromHex|fromBase64|fromChunk|hash|toChunk)|Chunk\\.(?:fromHex|hash)|Segment\\.hash|segment\\.bitsHash)\\b"
         }
       ]
     },
@@ -187,7 +214,7 @@
       "patterns": [
         {
           "name": "storage.type.builtin.atlx",
-          "match": "\\b(?:int64|uint32|uint256|address|coins|Segment|Chunk|InMessage|InMessageBounced|BounceMode)\\b"
+          "match": "\\b(?:bool|uint8|uint16|uint32|uint64|uint128|uint256|int8|int16|int32|int64|int128|int256|coins|address|bytes|hash|code|chunk|segment|stateinit|timestamp|List|Map|Option|Result|Chunk|ChunkRef|ChunkLink|ChunkCursor|Code|Segment|StateInit|Address|Hash|Bytes|Coins|Timestamp|Storage)\\b"
         }
       ]
     },

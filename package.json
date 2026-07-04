@@ -2,7 +2,7 @@
   "name": "aetralis-language",
   "displayName": "Aetralis Language",
   "description": "Syntax highlighting, autocompletion, hover help, diagnostics, and snippets for the Aetralis language.",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "publisher": "softwaremaestro",
   "repository": {
     "type": "git",
@@ -66,47 +66,47 @@
       {
         "id": "annotation",
         "superType": "decorator",
-        "description": "Aetralis annotation token."
+        "description": "Annotation tokens."
       },
       {
-        "id": "contractKeyword",
+        "id": "declarationKeyword",
         "superType": "keyword",
-        "description": "The contract keyword."
-      },
-      {
-        "id": "typeKeyword",
-        "superType": "keyword",
-        "description": "The type or struct keyword."
-      },
-      {
-        "id": "storageKeyword",
-        "superType": "keyword",
-        "description": "The const, var, or val keyword."
-      },
-      {
-        "id": "assertKeyword",
-        "superType": "keyword",
-        "description": "The assert keyword."
+        "description": "Declaration and ABI keywords."
       },
       {
         "id": "controlKeyword",
         "superType": "keyword",
-        "description": "A control-flow keyword."
+        "description": "Control-flow keywords."
       },
       {
-        "id": "functionKeyword",
+        "id": "abortKeyword",
         "superType": "keyword",
-        "description": "The func keyword."
+        "description": "Assertion and abort keywords."
+      },
+      {
+        "id": "bindingKeyword",
+        "superType": "keyword",
+        "description": "Binding and mutation keywords."
+      },
+      {
+        "id": "sideEffectKeyword",
+        "superType": "keyword",
+        "description": "Side-effect keywords."
+      },
+      {
+        "id": "deprecated",
+        "superType": "keyword",
+        "description": "Deprecated compatibility surface."
       },
       {
         "id": "type",
         "superType": "type",
-        "description": "A declared or built-in type."
+        "description": "A declared type name."
       },
       {
         "id": "builtinType",
         "superType": "type",
-        "description": "A built-in runtime data type."
+        "description": "A built-in runtime type."
       },
       {
         "id": "contractName",
@@ -116,12 +116,12 @@
       {
         "id": "builtin",
         "superType": "function",
-        "description": "A built-in runtime helper."
+        "description": "A built-in helper."
       },
       {
         "id": "function",
         "superType": "function",
-        "description": "A declared function."
+        "description": "A user-defined function."
       },
       {
         "id": "parameter",
@@ -141,7 +141,12 @@
       {
         "id": "constant",
         "superType": "variable",
-        "description": "A named constant or literal-like symbol."
+        "description": "A named constant."
+      },
+      {
+        "id": "enumMember",
+        "superType": "enumMember",
+        "description": "An enum or message variant."
       },
       {
         "id": "number",
@@ -152,34 +157,53 @@
         "id": "operator",
         "superType": "operator",
         "description": "An operator token."
-      },
-      {
-        "id": "messageName",
-        "superType": "enumMember",
-        "description": "A message variant name."
       }
     ],
     "semanticTokenScopes": [
       {
         "scopes": {
           "annotation": ["entity.other.attribute-name.atlx", "storage.type.annotation.atlx"],
-          "contractKeyword": ["keyword.declaration.contract.atlx"],
-          "typeKeyword": ["keyword.declaration.type.atlx"],
-          "storageKeyword": ["keyword.declaration.storage.atlx"],
-          "assertKeyword": ["keyword.control.assert.atlx"],
-          "controlKeyword": ["keyword.control.flow.atlx", "keyword.control.assert.atlx"],
-          "functionKeyword": ["keyword.declaration.function.atlx"],
+          "declarationKeyword": [
+            "keyword.declaration.atlx",
+            "keyword.declaration.package.atlx",
+            "keyword.declaration.import.atlx",
+            "keyword.declaration.contract.atlx",
+            "keyword.declaration.type.atlx",
+            "keyword.declaration.struct.atlx",
+            "keyword.declaration.enum.atlx",
+            "keyword.declaration.func.atlx",
+            "keyword.declaration.storage.atlx",
+            "keyword.declaration.deploy.atlx",
+            "keyword.declaration.message.atlx",
+            "keyword.declaration.getter.atlx",
+            "keyword.declaration.event.atlx",
+            "keyword.declaration.wallet.atlx",
+            "keyword.declaration.action.atlx",
+            "keyword.declaration.namespace.atlx",
+            "keyword.declaration.chain.atlx",
+            "keyword.declaration.deployer.atlx",
+            "keyword.declaration.salt.atlx",
+            "keyword.declaration.initial-balance.atlx",
+            "keyword.declaration.selector.atlx",
+            "keyword.declaration.version.atlx",
+            "keyword.declaration.alias.atlx"
+          ],
+          "controlKeyword": ["keyword.control.atlx", "keyword.control.flow.atlx"],
+          "abortKeyword": ["keyword.control.assert.atlx", "keyword.control.throw.atlx"],
+          "bindingKeyword": ["keyword.declaration.binding.atlx", "storage.modifier.binding.atlx"],
+          "sideEffectKeyword": ["keyword.other.side-effect.atlx", "keyword.declaration.side-effect.atlx"],
+          "deprecated": ["invalid.deprecated.atlx", "keyword.deprecated.atlx"],
           "builtinType": ["storage.type.builtin.atlx"],
           "contractName": ["entity.name.type.contract.atlx"],
           "builtin": ["support.function.builtin.atlx"],
-          "constant": ["constant.other.send-mode.atlx"],
-          "messageName": ["constant.other.message.atlx"]
+          "constant": ["constant.other.symbol.atlx"],
+          "enumMember": ["constant.other.enum.atlx", "constant.other.message.atlx"]
         }
       },
       {
         "language": "atlx",
         "scopes": {
-          "type": ["entity.name.type.struct.atlx", "entity.name.type.alias.atlx"],
+          "type": ["entity.name.type.struct.atlx", "entity.name.type.alias.atlx", "entity.name.type.enum.atlx"],
           "function": ["entity.name.function.atlx"],
           "parameter": ["variable.parameter.atlx"],
           "variable": ["variable.other.readwrite.atlx"],
@@ -196,26 +220,26 @@
       "editor.semanticTokenColorCustomizations": {
         "enabled": true,
         "rules": {
-          "annotation": "#39d5d0",
-          "contractKeyword": "#ff8fab",
-          "typeKeyword": "#ff8fab",
-          "storageKeyword": "#6bd6ff",
-          "assertKeyword": "#c792ea",
-          "controlKeyword": "#c792ea",
-          "type": "#8dff9f",
-          "builtinType": "#ffb86b",
-          "contractName": "#8dff9f",
-          "functionKeyword": "#ff8fab",
-          "builtin": "#ffd60a",
-          "function": "#c77dff",
-          "parameter": "#6bd6ff",
-          "variable": "#6bd6ff",
-          "property": "#6bd6ff",
-          "messageName": "#8dff9f",
-          "constant": "#d8c6a0",
-          "number": "#d8c6a0",
-          "operator": "#c9d6ea",
-          "comment": "#5d6f8e",
+          "annotation": "#56b6c2",
+          "declarationKeyword": "#c678dd",
+          "controlKeyword": "#e06c75",
+          "abortKeyword": "#e06c75",
+          "bindingKeyword": "#e5c07b",
+          "sideEffectKeyword": "#56b6c2",
+          "deprecated": "#7f848e",
+          "type": "#61afef",
+          "builtinType": "#61afef",
+          "contractName": "#61afef",
+          "builtin": "#56b6c2",
+          "function": "#d19a66",
+          "parameter": "#e5c07b",
+          "variable": "#abb2bf",
+          "property": "#abb2bf",
+          "constant": "#98c379",
+          "enumMember": "#98c379",
+          "number": "#98c379",
+          "operator": "#7f848e",
+          "comment": "#5c6370",
           "string": "#d8c6a0"
         }
       },
@@ -231,7 +255,7 @@
               "keyword.annotation.atlx"
             ],
             "settings": {
-              "foreground": "#39d5d0"
+              "foreground": "#56b6c2"
             }
           },
           {
@@ -250,7 +274,7 @@
               "entity.name.variable.contract-field.atlx"
             ],
             "settings": {
-              "foreground": "#6bd6ff"
+              "foreground": "#abb2bf"
             }
           },
           {
@@ -258,25 +282,85 @@
               "entity.name.type.contract.atlx"
             ],
             "settings": {
-              "foreground": "#8dff9f"
+              "foreground": "#61afef"
             }
           },
           {
             "scope": [
+              "keyword.declaration.atlx",
+              "keyword.declaration.package.atlx",
+              "keyword.declaration.import.atlx",
               "keyword.declaration.contract.atlx",
-              "keyword.declaration.type.atlx"
+              "keyword.declaration.type.atlx",
+              "keyword.declaration.struct.atlx",
+              "keyword.declaration.enum.atlx",
+              "keyword.declaration.func.atlx",
+              "keyword.declaration.storage.atlx",
+              "keyword.declaration.deploy.atlx",
+              "keyword.declaration.message.atlx",
+              "keyword.declaration.getter.atlx",
+              "keyword.declaration.event.atlx",
+              "keyword.declaration.wallet.atlx",
+              "keyword.declaration.action.atlx",
+              "keyword.declaration.namespace.atlx",
+              "keyword.declaration.chain.atlx",
+              "keyword.declaration.deployer.atlx",
+              "keyword.declaration.salt.atlx",
+              "keyword.declaration.initial-balance.atlx",
+              "keyword.declaration.selector.atlx",
+              "keyword.declaration.version.atlx",
+              "keyword.declaration.alias.atlx"
             ],
             "settings": {
-              "foreground": "#ff8fab"
+              "foreground": "#c678dd"
+            }
+          },
+          {
+            "scope": [
+              "keyword.control.atlx",
+              "keyword.control.flow.atlx",
+              "keyword.control.assert.atlx",
+              "keyword.control.throw.atlx"
+            ],
+            "settings": {
+              "foreground": "#e06c75"
+            }
+          },
+          {
+            "scope": [
+              "keyword.declaration.binding.atlx",
+              "storage.modifier.binding.atlx"
+            ],
+            "settings": {
+              "foreground": "#e5c07b"
+            }
+          },
+          {
+            "scope": [
+              "keyword.other.side-effect.atlx",
+              "keyword.declaration.side-effect.atlx"
+            ],
+            "settings": {
+              "foreground": "#56b6c2"
+            }
+          },
+          {
+            "scope": [
+              "invalid.deprecated.atlx",
+              "keyword.deprecated.atlx"
+            ],
+            "settings": {
+              "foreground": "#7f848e"
             }
           },
           {
             "scope": [
               "entity.name.type.struct.atlx",
-              "entity.name.type.alias.atlx"
+              "entity.name.type.alias.atlx",
+              "entity.name.type.enum.atlx"
             ],
             "settings": {
-              "foreground": "#8dff9f"
+              "foreground": "#61afef"
             }
           },
           {
@@ -284,59 +368,44 @@
               "storage.type.builtin.atlx"
             ],
             "settings": {
-              "foreground": "#ffb86b"
+              "foreground": "#61afef"
             }
           },
           {
             "scope": [
-              "keyword.control.assert.atlx"
+              "entity.name.function.atlx"
             ],
             "settings": {
-              "foreground": "#c792ea"
+              "foreground": "#d19a66"
             }
           },
           {
             "scope": [
-              "keyword.control.flow.atlx"
+              "variable.parameter.atlx"
             ],
             "settings": {
-              "foreground": "#c792ea"
+              "foreground": "#e5c07b"
             }
           },
           {
             "scope": [
-              "entity.name.function.atlx",
-              "keyword.declaration.function.atlx"
-            ],
-            "settings": {
-              "foreground": "#c77dff"
-            }
-          },
-          {
-            "scope": [
-              "keyword.declaration.storage.atlx"
-            ],
-            "settings": {
-              "foreground": "#6bd6ff"
-            }
-          },
-          {
-            "scope": [
+              "variable.other.readwrite.atlx",
               "entity.name.variable.contract-field.atlx",
               "variable.other.property.atlx",
               "meta.declaration.contract-field.atlx"
             ],
             "settings": {
-              "foreground": "#6bd6ff"
+              "foreground": "#abb2bf"
             }
           },
           {
             "scope": [
-              "constant.numeric.integer.atlx",
-              "constant.other.send-mode.atlx"
+              "constant.other.symbol.atlx",
+              "constant.other.enum.atlx",
+              "constant.numeric.integer.atlx"
             ],
             "settings": {
-              "foreground": "#d8c6a0"
+              "foreground": "#98c379"
             }
           },
           {
@@ -344,7 +413,7 @@
               "support.function.builtin.atlx"
             ],
             "settings": {
-              "foreground": "#ffd60a"
+              "foreground": "#56b6c2"
             }
           }
         ]

@@ -1,83 +1,188 @@
-export const declarationKeywords = ["const", "type", "struct", "contract", "func"] as const;
+export const declarationKeywords = [
+  "package",
+  "import",
+  "contract",
+  "struct",
+  "enum",
+  "type",
+  "func",
+  "storage",
+  "deploy",
+  "message",
+  "getter",
+  "event",
+  "wallet",
+  "action",
+  "namespace",
+  "chain",
+  "deployer",
+  "salt",
+  "initial_balance",
+  "selector",
+  "version",
+  "as"
+] as const;
 
-export const controlKeywords = ["if", "else", "match", "return", "assert", "throw", "lazy", "mutate", "var", "val"] as const;
+export const controlKeywords = [
+  "if",
+  "else",
+  "while",
+  "do",
+  "repeat",
+  "for",
+  "in",
+  "to",
+  "match",
+  "case",
+  "return",
+  "break",
+  "continue"
+] as const;
+
+export const abortKeywords = ["assert", "throw"] as const;
+
+export const bindingKeywords = ["const", "var", "lazy", "mutate", "self", "set"] as const;
+
+export const sideEffectKeywords = ["emit", "send", "refund"] as const;
 
 export const metadataKeywords = ["author", "description", "version"] as const;
 
 export const annotationNames = [
-  "@storage",
-  "@message",
   "@internal",
   "@external",
   "@bounced",
   "@get",
   "@pure",
   "@impure",
-  "@store"
+  "@storage",
+  "@message"
 ] as const;
 
 export const annotationDetails = new Map<string, string>([
-  ["@storage", "Marks a persistent storage struct."],
-  ["@message", "Marks a message body struct."],
   ["@internal", "Marks an internal message handler."],
   ["@external", "Marks an external message handler."],
   ["@bounced", "Marks a bounced message handler."],
   ["@get", "Marks a read-only getter."],
   ["@pure", "Marks a pure function."],
   ["@impure", "Marks a function that may change chain-visible state."],
-  ["@store", "Legacy storage helper annotation."]
+  ["@storage", "Marks a persistent storage struct."],
+  ["@message", "Marks a message body struct."],
+  ["@store", "Legacy compatibility annotation."]
 ]);
 
 export const builtinTypes = [
-  "int64",
+  "bool",
+  "uint8",
+  "uint16",
   "uint32",
   "uint64",
+  "uint128",
   "uint256",
-  "address",
+  "int8",
+  "int16",
+  "int32",
+  "int64",
+  "int128",
+  "int256",
   "coins",
-  "Segment",
+  "address",
+  "bytes",
+  "hash",
+  "code",
+  "chunk",
+  "segment",
+  "stateinit",
+  "timestamp",
+  "List",
+  "Map",
+  "Option",
+  "Result",
   "Chunk",
-  "InMessage",
-  "InMessageBounced",
-  "BounceMode"
+  "ChunkRef",
+  "ChunkLink",
+  "ChunkCursor",
+  "Code",
+  "Segment",
+  "StateInit",
+  "Address",
+  "Hash",
+  "Bytes",
+  "Coins",
+  "Timestamp",
+  "Storage"
 ] as const;
 
-export const builtins = [
+export const builtinHelpers = [
+  "buildMessage",
+  "counterfactualAddress",
+  "autoDeployAddress",
+  "getAddress",
+  "getOriginalBalance",
+  "getAttachedValue",
+  "getCode",
+  "setCodePostponed",
   "now",
-  "getBalance",
+  "logicalTime",
+  "currentBlockLogicalTime",
   "random",
-  "createMessage",
-  "skipBouncedPrefix",
-  "fromSegment",
+  "isSignatureValid",
   "fromChunk",
-  "toChunk",
-  "isEmpty",
-  "send"
+  "toChunk"
 ] as const;
 
-export const builtinConstants = ["SEND_BOUNCE_ON_FAIL", "SEND_FEE_FROM_BALANCE"] as const;
-
-export const bounceModeMembers = ["Only256BitsOfBody", "NoBounce"] as const;
-
-export const memberCompletions: Record<string, Array<{ label: string; detail: string }>> = {
-  contract: [
-    { label: "getData", detail: "contract.getData()" },
-    { label: "setData", detail: "contract.setData(...)" }
+export const builtinMemberHelpers: Record<string, Array<{ label: string; detail: string }>> = {
+  random: [
+    { label: "initialize", detail: "random.initialize(...)" },
+    { label: "initializeBy", detail: "random.initializeBy(...)" },
+    { label: "uint256", detail: "random.uint256()" },
+    { label: "range", detail: "random.range(...)" },
+    { label: "getSeed", detail: "random.getSeed()" },
+    { label: "setSeed", detail: "random.setSeed(...)" }
   ],
-  in: [
-    { label: "body", detail: "in.body" },
-    { label: "senderAddress", detail: "in.senderAddress" },
-    { label: "bouncedBody", detail: "in.bouncedBody" }
+  Storage: [
+    { label: "load", detail: "Storage.load()" },
+    { label: "save", detail: "Storage.save(...)" }
   ],
-  body: [
-    { label: "isEmpty", detail: "body.isEmpty()" },
-    { label: "skipBouncedPrefix", detail: "body.skipBouncedPrefix()" }
+  Code: [
+    { label: "fromHex", detail: "Code.fromHex(...)" },
+    { label: "fromBase64", detail: "Code.fromBase64(...)" },
+    { label: "fromChunk", detail: "Code.fromChunk(...)" },
+    { label: "hash", detail: "Code.hash()" },
+    { label: "toChunk", detail: "Code.toChunk(...)" }
   ],
-  bouncedBody: [
-    { label: "isEmpty", detail: "bouncedBody.isEmpty()" },
-    { label: "skipBouncedPrefix", detail: "bouncedBody.skipBouncedPrefix()" }
+  Chunk: [
+    { label: "fromHex", detail: "Chunk.fromHex(...)" },
+    { label: "hash", detail: "Chunk.hash()" }
+  ],
+  Segment: [
+    { label: "hash", detail: "Segment.hash()" }
+  ],
+  segment: [
+    { label: "bitsHash", detail: "segment.bitsHash()" }
   ]
 };
+
+export const compatibilityNames = [
+  "let",
+  "val",
+  "mut",
+  "slice",
+  "cell",
+  "isSlice",
+  "isSliceSignatureValid",
+  "createMessage",
+  "commit",
+  "skipBouncedPrefix",
+  "fromSegment",
+  "isEmpty",
+  "send",
+  "getData",
+  "setData"
+] as const;
+
+export const compatibilityAnnotations = ["@store"] as const;
+
+export const enumMemberKeywords = ["message", "enum"] as const;
 
 export const createMessageFields = [
   { label: "bounce", detail: "Bounce behavior" },
