@@ -14,6 +14,7 @@ import {
   declarationKeywords,
   metadataKeywords,
   makeSet,
+  sendModeKeywords,
   reservedHandlerNames
 } from "./language-data";
 
@@ -22,6 +23,7 @@ const CONTROL_KEYWORDS: Set<string> = makeSet(controlKeywords as readonly string
 const ABORT_KEYWORDS: Set<string> = makeSet(abortKeywords as readonly string[]);
 const BINDING_KEYWORDS: Set<string> = makeSet(bindingKeywords as readonly string[]);
 const METADATA_KEYWORDS: Set<string> = makeSet(metadataKeywords as readonly string[]);
+const SEND_MODE_KEYWORDS: Set<string> = makeSet(sendModeKeywords as readonly string[]);
 const BUILTINS: Set<string> = makeSet(builtinHelpers as readonly string[]);
 const BUILTIN_TYPES: Set<string> = makeSet(builtinTypes as readonly string[]);
 const COMPATIBILITY_NAMES: Set<string> = makeSet(compatibilityNames as readonly string[]);
@@ -980,6 +982,7 @@ function findUnknownIdentifiers(tokens: any[], lookup: any) {
     "emit",
     "send",
     "refund",
+    ...SEND_MODE_KEYWORDS,
     ...METADATA_KEYWORDS,
     ...BUILTINS,
     ...BUILTIN_TYPES,
@@ -1148,6 +1151,9 @@ function classifyWord(word: string) {
   }
   if (word === "emit" || word === "send" || word === "refund") {
     return "sideEffectKeyword";
+  }
+  if (SEND_MODE_KEYWORDS.has(word)) {
+    return "constant";
   }
   if (BUILTINS.has(word)) {
     return "builtin";

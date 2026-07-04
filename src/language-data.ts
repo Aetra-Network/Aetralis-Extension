@@ -45,6 +45,17 @@ export const bindingKeywords = ["const", "var", "lazy", "mutate", "self", "set"]
 
 export const sideEffectKeywords = ["emit", "send", "refund"] as const;
 
+export const sendModeKeywords = [
+  "SEND_DEFAULT",
+  "SEND_CARRY_REMAINDER",
+  "SEND_DRAIN_BALANCE",
+  "SEND_ESTIMATE_ONLY",
+  "SEND_FEE_FROM_BALANCE",
+  "SEND_IGNORE_ERRORS",
+  "SEND_BOUNCE_ON_FAIL",
+  "SEND_DESTROY_IF_EMPTY"
+] as const;
+
 export const metadataKeywords = ["author", "description", "version"] as const;
 
 export const annotationNames = [

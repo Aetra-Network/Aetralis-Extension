@@ -162,6 +162,23 @@ contract Counter {
   assert.equal(semanticTypeForText(analysis, "bitsHash"), "builtin");
 });
 
+test("send modes stay on the constant lane", () => {
+  const analysis = analyzeDocument(`
+contract Counter {
+  func transfer() {
+    buildMessage({
+      value: getAttachedValue(),
+      dest: getAddress(),
+      body: fromChunk(contract.getCode())
+    }).send(SEND_DEFAULT | SEND_IGNORE_ERRORS | SEND_BOUNCE_ON_FAIL)
+  }
+}`);
+
+  assert.equal(semanticTypeForText(analysis, "SEND_DEFAULT"), "constant");
+  assert.equal(semanticTypeForText(analysis, "SEND_IGNORE_ERRORS"), "constant");
+  assert.equal(semanticTypeForText(analysis, "SEND_BOUNCE_ON_FAIL"), "constant");
+});
+
 test("deprecated compatibility surface stays gray", () => {
   const analysis = analyzeDocument(`
 let x = 1

@@ -55,10 +55,14 @@ test("textmate fallback rules cover annotations, declarations, types, and deprec
   const builtinTypeRule = rules.find((rule) => rule.scope.includes("storage.type.builtin.atlx"));
   assert.ok(builtinTypeRule, "missing builtin type scope fallback");
 
+  const sendModeRule = rules.find((rule) => rule.scope.includes("constant.language.send-mode.atlx"));
+  assert.ok(sendModeRule, "missing send mode scope fallback");
+
   assert.equal(annotationRule.settings.foreground, "#56b6c2");
   assert.equal(declarationRule.settings.foreground, "#c678dd");
   assert.equal(deprecatedRule.settings.foreground, "#7f848e");
   assert.equal(builtinTypeRule.settings.foreground, "#61afef");
+  assert.equal(sendModeRule.settings.foreground, "#98c379");
 });
 
 test("semantic token legend includes the emitted token types", () => {

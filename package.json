@@ -2,7 +2,7 @@
   "name": "aetralis-language",
   "displayName": "Aetralis Language",
   "description": "Syntax highlighting, autocompletion, hover help, diagnostics, and snippets for the Aetralis language.",
-  "version": "0.1.18",
+  "version": "0.1.19",
   "publisher": "softwaremaestro",
   "repository": {
     "type": "git",
@@ -196,7 +196,7 @@
           "builtinType": ["storage.type.builtin.atlx"],
           "contractName": ["entity.name.type.contract.atlx"],
           "builtin": ["support.function.builtin.atlx"],
-          "constant": ["constant.other.symbol.atlx"],
+          "constant": ["constant.other.symbol.atlx", "constant.language.send-mode.atlx", "constant.other.send-mode.atlx"],
           "enumMember": ["constant.other.enum.atlx", "constant.other.message.atlx"]
         }
       },
@@ -402,7 +402,9 @@
             "scope": [
               "constant.other.symbol.atlx",
               "constant.other.enum.atlx",
-              "constant.numeric.integer.atlx"
+              "constant.numeric.integer.atlx",
+              "constant.language.send-mode.atlx",
+              "constant.other.send-mode.atlx"
             ],
             "settings": {
               "foreground": "#98c379"
