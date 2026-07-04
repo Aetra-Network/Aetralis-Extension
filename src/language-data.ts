@@ -139,10 +139,6 @@ export const builtinMemberHelpers: Record<string, Array<{ label: string; detail:
     { label: "getSeed", detail: "random.getSeed()" },
     { label: "setSeed", detail: "random.setSeed(...)" }
   ],
-  Storage: [
-    { label: "load", detail: "Storage.load()" },
-    { label: "save", detail: "Storage.save(...)" }
-  ],
   Code: [
     { label: "fromHex", detail: "Code.fromHex(...)" },
     { label: "fromBase64", detail: "Code.fromBase64(...)" },

@@ -123,11 +123,11 @@ contract Counter {
 test("builtin helpers and built-in member methods share one color lane", () => {
   const analysis = analyzeDocument(`
 contract Counter {
-  func Storage.load() {
-    return Storage.save(random.initialize().range())
+  func TokenStorage.load() {
+    return TokenStorage.save(random.initialize().range())
   }
 
-  func Storage.save(self) {
+  func TokenStorage.save(self) {
     buildMessage({
       value: getAttachedValue(),
       dest: getAddress(),
@@ -135,7 +135,7 @@ contract Counter {
     })
   }
 
-  func Storage.touch(mutate self) {
+  func TokenStorage.touch(mutate self) {
     self.lastNow = now()
     self.lastBalance = logicalTime()
     self.lastRandom = currentBlockLogicalTime()
@@ -145,8 +145,8 @@ contract Counter {
   }
 }`);
 
-  assert.equal(semanticTypeForText(analysis, "load"), "builtin");
-  assert.equal(semanticTypeForText(analysis, "save"), "builtin");
+  assert.equal(semanticTypeForText(analysis, "load"), "function");
+  assert.equal(semanticTypeForText(analysis, "save"), "function");
   assert.equal(semanticTypeForText(analysis, "initialize"), "builtin");
   assert.equal(semanticTypeForText(analysis, "range"), "builtin");
   assert.equal(semanticTypeForText(analysis, "buildMessage"), "builtin");

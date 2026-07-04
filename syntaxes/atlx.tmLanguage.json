@@ -206,7 +206,7 @@
         },
         {
           "name": "support.function.builtin.atlx",
-          "match": "\\b(?:Storage\\.(?:load|save)|random\\.(?:initialize|initializeBy|uint256|range|getSeed|setSeed)|Code\\.(?:fromHex|fromBase64|fromChunk|hash|toChunk)|Chunk\\.(?:fromHex|hash)|Segment\\.hash|segment\\.bitsHash)\\b"
+          "match": "\\b(?:random\\.(?:initialize|initializeBy|uint256|range|getSeed|setSeed)|Code\\.(?:fromHex|fromBase64|fromChunk|hash|toChunk)|Chunk\\.(?:fromHex|hash)|Segment\\.hash|segment\\.bitsHash)\\b"
         }
       ]
     },
