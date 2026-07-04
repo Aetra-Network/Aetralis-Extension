@@ -82,6 +82,7 @@ export const annotationDetails = new Map<string, string>([
 ]);
 
 export const builtinTypes = [
+  "string",
   "bool",
   "uint8",
   "uint16",
@@ -89,15 +90,28 @@ export const builtinTypes = [
   "uint64",
   "uint128",
   "uint256",
+  "u8",
+  "u16",
+  "u32",
+  "u64",
+  "u128",
+  "u256",
   "int8",
   "int16",
   "int32",
   "int64",
   "int128",
   "int256",
+  "i8",
+  "i16",
+  "i32",
+  "i64",
+  "i128",
+  "i256",
   "coins",
   "address",
   "bytes",
+  "hash32",
   "hash",
   "code",
   "chunk",
@@ -106,6 +120,8 @@ export const builtinTypes = [
   "timestamp",
   "List",
   "Map",
+  "Dict",
+  "MapEntry",
   "Option",
   "Result",
   "Chunk",
@@ -120,7 +136,11 @@ export const builtinTypes = [
   "Bytes",
   "Coins",
   "Timestamp",
-  "Storage"
+  "Storage",
+  "InMessage",
+  "InMessageBounced",
+  "ContractContext",
+  "MessageEnvelope"
 ] as const;
 
 export const builtinHelpers = [

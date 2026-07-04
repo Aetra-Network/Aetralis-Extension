@@ -94,6 +94,59 @@ contract Counter {
   assert.equal(semanticTypeForToken(analysis, "return", 10), "controlKeyword");
 });
 
+test("canonical scalar, numeric, container, and runtime types stay on one lane", () => {
+  const analysis = analyzeDocument(`
+contract Counter {
+  a: string
+  b: hash32
+  c: uint256
+  d: u8
+  e: i256
+  f: Dict
+  g: MapEntry
+  h: Option
+  i: Result
+  j: ChunkRef
+  k: ChunkLink
+  l: ChunkCursor
+  m: InMessage
+  n: InMessageBounced
+  o: ContractContext
+  p: MessageEnvelope
+  q: Address
+  r: Bytes
+  s: Coins
+  t: Timestamp
+  u: StateInit
+}`);
+
+  for (const [name, line] of [
+    ["string", 2],
+    ["hash32", 3],
+    ["uint256", 4],
+    ["u8", 5],
+    ["i256", 6],
+    ["Dict", 7],
+    ["MapEntry", 8],
+    ["Option", 9],
+    ["Result", 10],
+    ["ChunkRef", 11],
+    ["ChunkLink", 12],
+    ["ChunkCursor", 13],
+    ["InMessage", 14],
+    ["InMessageBounced", 15],
+    ["ContractContext", 16],
+    ["MessageEnvelope", 17],
+    ["Address", 18],
+    ["Bytes", 19],
+    ["Coins", 20],
+    ["Timestamp", 21],
+    ["StateInit", 22]
+  ]) {
+    assert.equal(semanticTypeForToken(analysis, name, line), "builtinType");
+  }
+});
+
 test("contract metadata, fields, and enum members stay in the expected lanes", () => {
   const analysis = analyzeDocument(`
 enum Mode {

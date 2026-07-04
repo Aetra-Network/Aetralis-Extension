@@ -80,7 +80,7 @@ export function analyzeDocument(text: string) {
   const extracted = extractSymbols(masked, lineStarts);
   const symbols = extracted.symbols;
   const lookup = extracted.lookup || buildLookup(symbols);
-  const diagnostics = [...scan.diagnostics, ...(extracted.diagnostics || []), ...findUnknownIdentifiers(scan.tokens, lookup)];
+  const diagnostics = [...scan.diagnostics, ...(extracted.diagnostics || []), ...findUnknownIdentifiers(scan.tokens, lookup, text.length)];
 
   return {
     text,
@@ -972,8 +972,10 @@ function isReservedSymbolName(name: string) {
   return keywordNames.has(name);
 }
 
-function findUnknownIdentifiers(tokens: any[], lookup: any) {
+function findUnknownIdentifiers(tokens: any[], lookup: any, textLength: number) {
   const diagnostics: any[] = [];
+  const candidateNames = [...lookup.allNames, ...BUILTINS, ...BUILTIN_TYPES, ...COMPATIBILITY_NAMES];
+  const enableSuggestions = textLength <= 25000 && candidateNames.length <= 1200 && tokens.length <= 5000;
   const known = new Set([
     ...DECLARATION_KEYWORDS,
     ...CONTROL_KEYWORDS,
@@ -1007,7 +1009,7 @@ function findUnknownIdentifiers(tokens: any[], lookup: any) {
       continue;
     }
 
-    const suggestion = closestName(token.text, [...lookup.allNames, ...BUILTINS, ...BUILTIN_TYPES, ...COMPATIBILITY_NAMES]);
+    const suggestion = enableSuggestions ? closestName(token.text, candidateNames) : null;
     diagnostics.push({
       severity: "warning",
       code: "W_UNKNOWN_IDENTIFIER",

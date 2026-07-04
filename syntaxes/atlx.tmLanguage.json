@@ -214,7 +214,7 @@
       "patterns": [
         {
           "name": "storage.type.builtin.atlx",
-          "match": "\\b(?:bool|uint8|uint16|uint32|uint64|uint128|uint256|int8|int16|int32|int64|int128|int256|coins|address|bytes|hash|code|chunk|segment|stateinit|timestamp|List|Map|Option|Result|Chunk|ChunkRef|ChunkLink|ChunkCursor|Code|Segment|StateInit|Address|Hash|Bytes|Coins|Timestamp|Storage)\\b"
+          "match": "\\b(?:string|bool|uint8|uint16|uint32|uint64|uint128|uint256|u8|u16|u32|u64|u128|u256|int8|int16|int32|int64|int128|int256|i8|i16|i32|i64|i128|i256|coins|address|bytes|hash32|hash|code|chunk|segment|stateinit|timestamp|List|Map|Dict|MapEntry|Option|Result|Chunk|ChunkRef|ChunkLink|ChunkCursor|Code|Segment|StateInit|Address|Hash|Bytes|Coins|Timestamp|Storage|InMessage|InMessageBounced|ContractContext|MessageEnvelope)\\b"
         }
       ]
     },

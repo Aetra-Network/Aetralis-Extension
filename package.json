@@ -2,7 +2,7 @@
   "name": "aetralis-language",
   "displayName": "Aetralis Language",
   "description": "Syntax highlighting, autocompletion, hover help, diagnostics, and snippets for the Aetralis language.",
-  "version": "0.1.19",
+  "version": "0.1.20",
   "publisher": "softwaremaestro",
   "repository": {
     "type": "git",
@@ -193,7 +193,7 @@
           "bindingKeyword": ["keyword.declaration.binding.atlx", "storage.modifier.binding.atlx"],
           "sideEffectKeyword": ["keyword.other.side-effect.atlx", "keyword.declaration.side-effect.atlx"],
           "deprecated": ["invalid.deprecated.atlx", "keyword.deprecated.atlx"],
-          "builtinType": ["storage.type.builtin.atlx"],
+          "builtinType": ["storage.type.builtin.atlx", "entity.name.type.builtin.atlx"],
           "contractName": ["entity.name.type.contract.atlx"],
           "builtin": ["support.function.builtin.atlx"],
           "constant": ["constant.other.symbol.atlx", "constant.language.send-mode.atlx", "constant.other.send-mode.atlx"],
@@ -203,7 +203,13 @@
       {
         "language": "atlx",
         "scopes": {
-          "type": ["entity.name.type.struct.atlx", "entity.name.type.alias.atlx", "entity.name.type.enum.atlx"],
+          "type": [
+            "entity.name.type.struct.atlx",
+            "entity.name.type.alias.atlx",
+            "entity.name.type.enum.atlx",
+            "entity.name.type.builtin.atlx",
+            "storage.type.builtin.atlx"
+          ],
           "function": ["entity.name.function.atlx"],
           "parameter": ["variable.parameter.atlx"],
           "variable": ["variable.other.readwrite.atlx"],
@@ -357,7 +363,8 @@
             "scope": [
               "entity.name.type.struct.atlx",
               "entity.name.type.alias.atlx",
-              "entity.name.type.enum.atlx"
+              "entity.name.type.enum.atlx",
+              "entity.name.type.builtin.atlx"
             ],
             "settings": {
               "foreground": "#61afef"
@@ -365,7 +372,8 @@
           },
           {
             "scope": [
-              "storage.type.builtin.atlx"
+              "storage.type.builtin.atlx",
+              "entity.name.type.builtin.atlx"
             ],
             "settings": {
               "foreground": "#61afef"
