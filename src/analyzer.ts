@@ -229,6 +229,9 @@ function semanticTypeForToken(token: any, lookup: any, tokens: any, index: numbe
     }
     return "builtinType";
   }
+  if (lookup.parameterNames && lookup.parameterNames.has(token.text)) {
+    return "parameter";
+  }
   if (next && next.kind === "operator" && next.text === ":") {
     return "property";
   }
@@ -679,7 +682,17 @@ function extractSymbols(masked: string, lineStarts: number[]) {
         break;
     }
 
-    if (isReservedSymbolName(name)) {
+    const shouldCheckReserved =
+      kind === "Class" ||
+      kind === "Type" ||
+      kind === "Message" ||
+      kind === "EnumMember" ||
+      kind === "Function" ||
+      kind === "Method" ||
+      kind === "Variable" ||
+      kind === "Constant";
+
+    if (shouldCheckReserved && isReservedSymbolName(name)) {
       const label = containerName ? `${containerName}.${name}` : name;
       const reserved = reservedHandlerNames[name];
       const message = reserved
@@ -830,7 +843,7 @@ function extractSymbols(masked: string, lineStarts: number[]) {
       }
     }
 
-    const localVarMatches = declarationText.matchAll(/\b(?:var|val)\s+([A-Za-z_][A-Za-z0-9_]*)/g);
+    const localVarMatches = declarationText.matchAll(/\b(?:var|val|let|const)\s+([A-Za-z_][A-Za-z0-9_]*)/g);
     for (const match of localVarMatches) {
       const name = match[1];
       const offset = lineStart + declarationOffset + declarationText.indexOf(match[0]) + match[0].lastIndexOf(name);

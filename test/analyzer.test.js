@@ -246,6 +246,30 @@ contract Counter {
   assert.equal(semanticTypeForToken(analysis, "SEND_DEFAULT", 4), "constant");
 });
 
+test("fields, handler parameters, and const locals do not trip reserved-name warnings", () => {
+  const analysis = analyzeDocument(`
+type Msg = address
+
+contract TokenMaster {
+  storage: Msg
+  incomingMessages: Msg
+  incomingExternal: Msg
+
+  @bounced
+  func onBouncedMessage(in: InMessageBounced) {
+    const bounced = 1
+    return bounced
+  }
+}`);
+
+  assert.equal(semanticTypeForToken(analysis, "storage", 4), "property");
+  assert.equal(semanticTypeForToken(analysis, "incomingMessages", 5), "property");
+  assert.equal(semanticTypeForToken(analysis, "incomingExternal", 6), "property");
+  assert.equal(semanticTypeForToken(analysis, "in", 9), "parameter");
+  assert.equal(semanticTypeForToken(analysis, "bounced", 10), "variable");
+  assert.ok(!analysis.diagnostics.some((diag) => diag.code === "E_RESERVED_IDENTIFIER" || diag.code === "W_UNKNOWN_IDENTIFIER"));
+});
+
 test("deprecated compatibility surface stays gray", () => {
   const analysis = analyzeDocument(`
 let x = 1
