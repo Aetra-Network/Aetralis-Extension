@@ -11,6 +11,7 @@ import {
 export function activate(context: vscode.ExtensionContext) {
   const diagnostics = vscode.languages.createDiagnosticCollection("aetralis");
   const validationTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const lightRefreshTimers = new Map<string, ReturnType<typeof setTimeout>>();
   const analysisCache = new Map<string, {
     version: number;
     light: ReturnType<typeof analyzeDocument>;
@@ -19,9 +20,15 @@ export function activate(context: vscode.ExtensionContext) {
   const semanticTokensLegend = new vscode.SemanticTokensLegend([...SEMANTIC_TOKEN_TYPES], []);
   const MAX_AUTO_VALIDATE_LENGTH = 30000;
   const MAX_AUTO_VALIDATE_LINES = 1200;
+  const LIGHT_REFRESH_DELAY_MS = 90;
 
   const validate = (document: vscode.TextDocument) => {
     if (!isAtlxDocument(document)) {
+      return;
+    }
+
+    if (!shouldRunFullValidation(document)) {
+      diagnostics.delete(document.uri);
       return;
     }
 
@@ -43,23 +50,8 @@ export function activate(context: vscode.ExtensionContext) {
     if (!isAtlxDocument(document)) {
       return;
     }
-
-    if (!shouldAutoValidate(document)) {
-      diagnostics.delete(document.uri);
-      return;
-    }
-
-    const key = document.uri.toString();
-    const existing = validationTimers.get(key);
-    if (existing) {
-      clearTimeout(existing);
-    }
-
-    const timer = setTimeout(() => {
-      validationTimers.delete(key);
-      validate(document);
-    }, 120);
-    validationTimers.set(key, timer);
+    scheduleLightRefresh(document);
+    scheduleFullValidation(document);
   };
 
   const disposables: vscode.Disposable[] = [
@@ -115,25 +107,34 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.workspace.onDidOpenTextDocument((document) => scheduleValidation(document)),
     vscode.workspace.onDidChangeTextDocument((event) => scheduleValidation(event.document)),
     vscode.workspace.onDidSaveTextDocument((document) => validate(document)),
-    vscode.workspace.onDidCloseTextDocument((document) => {
-      diagnostics.delete(document.uri);
-      const key = document.uri.toString();
-      const existing = validationTimers.get(key);
-      if (existing) {
-        clearTimeout(existing);
-        validationTimers.delete(key);
-      }
-      analysisCache.delete(key);
-    }),
-    {
-      dispose() {
-        for (const timer of validationTimers.values()) {
-          clearTimeout(timer);
+      vscode.workspace.onDidCloseTextDocument((document) => {
+        diagnostics.delete(document.uri);
+        const key = document.uri.toString();
+        const existing = validationTimers.get(key);
+        if (existing) {
+          clearTimeout(existing);
+          validationTimers.delete(key);
         }
-        validationTimers.clear();
-        analysisCache.clear();
+        const lightExisting = lightRefreshTimers.get(key);
+        if (lightExisting) {
+          clearTimeout(lightExisting);
+          lightRefreshTimers.delete(key);
+        }
+        analysisCache.delete(key);
+      }),
+      {
+        dispose() {
+          for (const timer of validationTimers.values()) {
+            clearTimeout(timer);
+          }
+          for (const timer of lightRefreshTimers.values()) {
+            clearTimeout(timer);
+          }
+          validationTimers.clear();
+          lightRefreshTimers.clear();
+          analysisCache.clear();
+        }
       }
-    }
   ];
 
   context.subscriptions.push(...disposables);
@@ -149,6 +150,11 @@ export function activate(context: vscode.ExtensionContext) {
       if (!includeDiagnostics || cached.full) {
         return includeDiagnostics ? (cached.full || cached.light) : cached.light;
       }
+    }
+
+    if (!includeDiagnostics && cached && isLargeDocument(document) && cached.light) {
+      scheduleLightRefresh(document);
+      return cached.light;
     }
 
     const text = document.getText();
@@ -176,6 +182,55 @@ export function activate(context: vscode.ExtensionContext) {
 
   function shouldAutoValidate(document: vscode.TextDocument) {
     return document.getText().length <= MAX_AUTO_VALIDATE_LENGTH && document.lineCount <= MAX_AUTO_VALIDATE_LINES;
+  }
+
+  function shouldRunFullValidation(document: vscode.TextDocument) {
+    return shouldAutoValidate(document);
+  }
+
+  function isLargeDocument(document: vscode.TextDocument) {
+    return !shouldAutoValidate(document);
+  }
+
+  function scheduleLightRefresh(document: vscode.TextDocument) {
+    const key = document.uri.toString();
+    const existing = lightRefreshTimers.get(key);
+    if (existing) {
+      clearTimeout(existing);
+    }
+
+    const timer = setTimeout(() => {
+      lightRefreshTimers.delete(key);
+      try {
+        const text = document.getText();
+        analysisCache.set(key, {
+          version: document.version,
+          light: analyzeDocument(text, { includeDiagnostics: false })
+        });
+      } catch {
+        // Keep the last usable analysis if the document is being torn down.
+      }
+    }, LIGHT_REFRESH_DELAY_MS);
+    lightRefreshTimers.set(key, timer);
+  }
+
+  function scheduleFullValidation(document: vscode.TextDocument) {
+    if (!shouldRunFullValidation(document)) {
+      diagnostics.delete(document.uri);
+      return;
+    }
+
+    const key = document.uri.toString();
+    const existing = validationTimers.get(key);
+    if (existing) {
+      clearTimeout(existing);
+    }
+
+    const timer = setTimeout(() => {
+      validationTimers.delete(key);
+      validate(document);
+    }, 180);
+    validationTimers.set(key, timer);
   }
 }
 
