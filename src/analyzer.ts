@@ -73,14 +73,17 @@ export const SEMANTIC_TOKEN_TYPES = [
   "operator"
 ] as const;
 
-export function analyzeDocument(text: string) {
+export function analyzeDocument(text: string, options: { includeDiagnostics?: boolean } = {}) {
+  const includeDiagnostics = options.includeDiagnostics !== false;
   const lineStarts = buildLineStarts(text);
   const scan = scanDocument(text, lineStarts);
   const masked = maskNonCode(text);
   const extracted = extractSymbols(masked, lineStarts);
   const symbols = extracted.symbols;
   const lookup = extracted.lookup || buildLookup(symbols);
-  const diagnostics = [...scan.diagnostics, ...(extracted.diagnostics || []), ...findUnknownIdentifiers(scan.tokens, lookup, text.length)];
+  const diagnostics = includeDiagnostics
+    ? [...scan.diagnostics, ...(extracted.diagnostics || []), ...findUnknownIdentifiers(scan.tokens, lookup, text.length)]
+    : [];
 
   return {
     text,

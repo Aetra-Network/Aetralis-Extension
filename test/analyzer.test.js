@@ -232,6 +232,20 @@ contract Counter {
   assert.equal(semanticTypeForText(analysis, "SEND_BOUNCE_ON_FAIL"), "constant");
 });
 
+test("light analysis skips diagnostics for editor responsiveness", () => {
+  const analysis = analyzeDocument(`
+contract Counter {
+  func transfer() {
+    value: uint64
+    send(SEND_DEFAULT)
+  }
+}`, { includeDiagnostics: false });
+
+  assert.equal(analysis.diagnostics.length, 0);
+  assert.equal(semanticTypeForToken(analysis, "uint64", 3), "builtinType");
+  assert.equal(semanticTypeForToken(analysis, "SEND_DEFAULT", 4), "constant");
+});
+
 test("deprecated compatibility surface stays gray", () => {
   const analysis = analyzeDocument(`
 let x = 1

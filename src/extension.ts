@@ -11,8 +11,14 @@ import {
 export function activate(context: vscode.ExtensionContext) {
   const diagnostics = vscode.languages.createDiagnosticCollection("aetralis");
   const validationTimers = new Map<string, ReturnType<typeof setTimeout>>();
-  const analysisCache = new Map<string, { version: number; analysis: ReturnType<typeof analyzeDocument> }>();
+  const analysisCache = new Map<string, {
+    version: number;
+    light: ReturnType<typeof analyzeDocument>;
+    full?: ReturnType<typeof analyzeDocument>;
+  }>();
   const semanticTokensLegend = new vscode.SemanticTokensLegend([...SEMANTIC_TOKEN_TYPES], []);
+  const MAX_AUTO_VALIDATE_LENGTH = 30000;
+  const MAX_AUTO_VALIDATE_LINES = 1200;
 
   const validate = (document: vscode.TextDocument) => {
     if (!isAtlxDocument(document)) {
@@ -20,7 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     try {
-      const analysis = getAnalysis(document);
+      const analysis = getAnalysis(document, true);
       diagnostics.set(document.uri, analysis.diagnostics.map(toDiagnostic));
     } catch (error: any) {
       diagnostics.set(document.uri, [
@@ -35,6 +41,11 @@ export function activate(context: vscode.ExtensionContext) {
 
   const scheduleValidation = (document: vscode.TextDocument) => {
     if (!isAtlxDocument(document)) {
+      return;
+    }
+
+    if (!shouldAutoValidate(document)) {
+      diagnostics.delete(document.uri);
       return;
     }
 
@@ -57,7 +68,7 @@ export function activate(context: vscode.ExtensionContext) {
       { language: "atlx" },
       {
         provideCompletionItems(document, position) {
-          const analysis = getAnalysis(document);
+          const analysis = getAnalysis(document, false);
           return getCompletionItems(analysis, position).map(toCompletionItem);
         }
       },
@@ -69,7 +80,7 @@ export function activate(context: vscode.ExtensionContext) {
       { language: "atlx" },
       {
         provideHover(document, position) {
-          const analysis = getAnalysis(document);
+          const analysis = getAnalysis(document, false);
           const markdown = getHoverMarkdown(analysis, position);
           return markdown ? new vscode.Hover(new vscode.MarkdownString(markdown)) : null;
         }
@@ -79,7 +90,7 @@ export function activate(context: vscode.ExtensionContext) {
       { language: "atlx" },
       {
         provideDocumentSymbols(document) {
-          const analysis = getAnalysis(document);
+          const analysis = getAnalysis(document, false);
           return getDocumentSymbols(analysis).map(toDocumentSymbol);
         }
       }
@@ -88,7 +99,7 @@ export function activate(context: vscode.ExtensionContext) {
       { language: "atlx" },
       {
         provideDocumentSemanticTokens(document) {
-          const analysis = getAnalysis(document);
+          const analysis = getAnalysis(document, false);
           const builder = new vscode.SemanticTokensBuilder();
           for (const token of getSemanticTokens(analysis)) {
             const index = SEMANTIC_TOKEN_TYPES.indexOf(token.type as any);
@@ -131,16 +142,40 @@ export function activate(context: vscode.ExtensionContext) {
     scheduleValidation(document);
   }
 
-  function getAnalysis(document: vscode.TextDocument) {
+  function getAnalysis(document: vscode.TextDocument, includeDiagnostics: boolean) {
     const key = document.uri.toString();
     const cached = analysisCache.get(key);
     if (cached && cached.version === document.version) {
-      return cached.analysis;
+      if (!includeDiagnostics || cached.full) {
+        return includeDiagnostics ? (cached.full || cached.light) : cached.light;
+      }
     }
 
-    const analysis = analyzeDocument(document.getText());
-    analysisCache.set(key, { version: document.version, analysis });
-    return analysis;
+    const text = document.getText();
+    const nextCache = cached && cached.version === document.version
+      ? cached
+      : { version: document.version, light: analyzeDocument(text, { includeDiagnostics: false }) } as {
+          version: number;
+          light: ReturnType<typeof analyzeDocument>;
+          full?: ReturnType<typeof analyzeDocument>;
+        };
+
+    if (!cached || cached.version !== document.version) {
+      analysisCache.set(key, nextCache);
+    }
+
+    if (includeDiagnostics) {
+      const full = analyzeDocument(text, { includeDiagnostics: true });
+      nextCache.full = full;
+      analysisCache.set(key, nextCache);
+      return full;
+    }
+
+    return nextCache.light;
+  }
+
+  function shouldAutoValidate(document: vscode.TextDocument) {
+    return document.getText().length <= MAX_AUTO_VALIDATE_LENGTH && document.lineCount <= MAX_AUTO_VALIDATE_LINES;
   }
 }
 
