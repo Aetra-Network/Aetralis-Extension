@@ -22,8 +22,6 @@ Editor support for Aetralis smart contracts (`.atlx`) in Visual Studio Code.
 
 <img src="assets/example2.png" width="720" alt="An @internal message handler" />
 
-<img src="assets/example3.png" width="720" alt="An @get getter method" />
-
 ## Requirements
 
 Visual Studio Code 1.85 or later.
