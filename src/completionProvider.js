@@ -14,6 +14,18 @@ const completionProvider = {
     const line = document.lineAt(position.line).text.slice(0, position.character);
     const items = [];
 
+    // What's actually been typed so far at the cursor (e.g. "walletAddr" out
+    // of "walletAddressFor"). Everything built below is filtered down to
+    // this prefix before being returned — without it, VS Code receives every
+    // keyword, type, send mode, and workspace symbol on every keystroke and
+    // has to fuzzy-match its way to the one you meant, which is exactly what
+    // produces a long, noisy, seemingly-irrelevant suggestion list. An empty
+    // prefix (completion invoked on blank space, e.g. Ctrl+Space) still
+    // returns everything, unfiltered, which is the expected "browse" case.
+    const prefixMatch = line.match(/[A-Za-z_][A-Za-z0-9_]*$/);
+    const prefix = prefixMatch ? prefixMatch[0].toLowerCase() : '';
+    const matchesPrefix = (label) => !prefix || label.toLowerCase().startsWith(prefix);
+
     const annMatch = line.match(/@[a-z]*$/);
     if (annMatch) {
       const replaceRange = new vscode.Range(
@@ -132,7 +144,7 @@ const completionProvider = {
       item.detail = 'contract ' + name;
       items.push(item);
     }
-    return items;
+    return items.filter((item) => matchesPrefix(item.label));
   }
 };
 
