@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+
+- **Fixed**: brackets (`{} () []`) appearing inside a `//` or `/* */` comment could render in a highlighted (yellow/pink-ish) color instead of the comment's own color. Comment bodies now explicitly scope every bracket they contain, in both single-line and multi-line comments, verified against a real TextMate tokenizer.
+- **Added**: inline code inside a comment — wrap a snippet in backticks, e.g. `` `contract.getData()` `` — now renders in italics.
+- **Added**: typing `!=`, `=>`, `<=`, or `>=` in code now becomes `≠`, `⇒`, `≤`, `≥` the moment the second character is typed; skipped automatically inside strings and comments so example code in a comment or a string literal is never rewritten.
+- `README.md` is now the GitHub-facing page (Marketplace link, feature list, screenshots); the general, install-page-style description moved to `docs/marketplace-readme.md`, packaged as the Marketplace overview via `npm run package` (`vsce package --readme-path`).
+
 ## 1.1.0
 
 - **Completion**: local `var` bindings are now indexed alongside `const`, structs, enums, types, functions, and contracts — a variable you've declared anywhere in the file (or another known workspace file) is suggested as soon as you start typing its name again, with hover documentation and "Go to Definition" support to match.

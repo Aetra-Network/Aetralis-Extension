@@ -34,14 +34,31 @@
       "patterns": [
         {
           "name": "comment.line.double-slash.atlx",
-          "match": "//.*"
+          "begin": "//",
+          "end": "$",
+          "patterns": [
+            { "include": "#comment-inline-code" },
+            { "include": "#comment-brackets" }
+          ]
         },
         {
           "name": "comment.block.atlx",
           "begin": "/\\*",
-          "end": "\\*/"
+          "end": "\\*/",
+          "patterns": [
+            { "include": "#comment-inline-code" },
+            { "include": "#comment-brackets" }
+          ]
         }
       ]
+    },
+    "comment-inline-code": {
+      "name": "markup.inline.raw.atlx",
+      "match": "`[^`\\n]*`"
+    },
+    "comment-brackets": {
+      "name": "punctuation.definition.bracket.comment.atlx",
+      "match": "[{}()\\[\\]]"
     },
     "strings": {
       "name": "string.quoted.double.atlx",
@@ -151,8 +168,8 @@
     },
     "operators": {
       "name": "keyword.operator.atlx",
-      "comment": "Unicode ≠ ⇒ ⇐ ⇔ are styled as operators (same as their ASCII !=/=>/<-/<=> forms) wherever they appear, e.g. if pasted from math notation or a doc comment example.",
-      "match": "=>|->|<=>|==|!=|<=|>=|&&|\\|\\||\\?\\?|\\+=|-=|<<|>>|≠|⇒|⇐|⇔|[-+*/%&|^~!<>=?]"
+      "comment": "Unicode ≠ ⇒ ≤ ≥ ⇐ ⇔ are styled as operators (same as their ASCII !=/=>/<=/>=/<-/<=> forms) wherever they appear — the editor replaces !=, =>, <=, and >= with ≠, ⇒, ≤, ≥ as you type them (see src/unicodeSubstitution.js), and a pasted or hand-typed Unicode form is recognized here too.",
+      "match": "=>|->|<=>|==|!=|<=|>=|&&|\\|\\||\\?\\?|\\+=|-=|<<|>>|≠|⇒|≤|≥|⇐|⇔|[-+*/%&|^~!<>=?]"
     },
     "punctuation": {
       "name": "punctuation.atlx",

@@ -5,6 +5,7 @@ const { definitionProvider } = require('./src/definitionProvider');
 const { completionProvider } = require('./src/completionProvider');
 const { computeDiagnostics } = require('./src/diagnostics');
 const { maskNonCode, indexSource, mergedIndex, docIndexCache, updateIndexFor, seedWorkspaceIndex } = require('./src/symbolIndex');
+const { registerUnicodeSubstitution } = require('./src/unicodeSubstitution');
 
 // ---------------------------------------------------------------------------
 // Activation.
@@ -16,7 +17,8 @@ function activate(context) {
   context.subscriptions.push(
     vscode.languages.registerHoverProvider(selector, hoverProvider),
     vscode.languages.registerCompletionItemProvider(selector, completionProvider, '@'),
-    vscode.languages.registerDefinitionProvider(selector, definitionProvider)
+    vscode.languages.registerDefinitionProvider(selector, definitionProvider),
+    registerUnicodeSubstitution()
   );
 
   const collection = vscode.languages.createDiagnosticCollection('atlx');

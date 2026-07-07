@@ -1,28 +1,46 @@
 # Aetralis Language
 
+[![Install from Visual Studio Marketplace](https://img.shields.io/badge/VS%20Code-Install%20Aetralis%20Language-007ACC?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=softwaremaestro.aetralis-language&ssr=false#overview)
+
 Editor support for Aetralis smart contracts (`.atlx`) in Visual Studio Code.
 
-Aetralis is a purpose-built smart contract language. This extension gives it a proper home in the editor: your code is colored consistently no matter which color theme you use, the editor understands what you're pointing at and offers to explain it, it helps you write correct code faster by suggesting what you're likely to type next — including the names you've already declared yourself — and it flags structural mistakes as you type, before you ever reach for the compiler.
+**[Install it from the VS Code Marketplace →](https://marketplace.visualstudio.com/items?itemName=softwaremaestro.aetralis-language&ssr=false#overview)**
 
-## What it does
+## Features
 
-- **Highlighting** that reflects the shape of the language rather than approximating it — every construct gets its own distinct, theme-independent color, so the same file looks the same whether you're on a light theme, a dark theme, or a custom one.
-- **Contextual documentation on hover** — point at any part of your code and see what it means, what rules govern it, and how it's meant to be used, without leaving the editor.
-- **Completion that knows your project** — suggestions cover the language's own vocabulary as well as everything you've declared yourself, anywhere in your workspace. Start typing a name you've already used and it's offered back to you; accept it with Tab or a click, the same way any other suggestion works.
-- **Jump to definition** — navigate directly from a usage to where it's declared, including across files that reference one another.
-- **Inline diagnostics** that mirror the language's own structural rules, catching a class of mistakes immediately instead of after a full build.
+- **Theme-independent syntax highlighting** — every construct gets its own fixed color via `configurationDefaults`, so `.atlx` files look the same in any theme.
+- **Hover documentation** for annotations, send modes, reserved handler names, builtins, and anything you've declared yourself (structs, enums, type aliases, functions, consts, and local `var`/`const` bindings).
+- **Workspace-aware completion** — the language's own vocabulary plus every symbol declared anywhere in your open workspace, including your own functions and variables. Type the start of a name you've already used and accept the suggestion with Tab or a click.
+- **Go to Definition** (Ctrl+Click / F12), resolving across files pulled in via `import`.
+- **Diagnostics** mirroring the compiler's rules for message handlers (`@internal` / `@external` / `@bounced`) and for legacy/removed syntax.
+- **Live symbol substitution** — `!=`, `=>`, `<=`, and `>=` turn into `≠`, `⇒`, `≤`, `≥` the instant you finish typing them; it's skipped automatically inside strings and comments.
+- **Comment-aware coloring** — brackets that appear inside a `//` or `/* */` comment are always colored as comment text (never as stray highlighted punctuation), and inline code wrapped in backticks inside a comment (`` `like this` ``) renders in italics.
 
-All of this runs entirely inside the editor: nothing is sent anywhere, and there is no separate compiler or language server process to install or manage.
+## Screenshots
+
+<img src="assets/example1.png" width="720" alt="Storage schema and typed message declarations" />
+
+<img src="assets/example2.png" width="720" alt="An @internal message handler" />
+
+<img src="assets/example3.png" width="720" alt="An @get getter method" />
 
 ## Requirements
 
-Visual Studio Code 1.85 or later. No other setup is required — installing the extension is enough.
+Visual Studio Code 1.85 or later.
 
 ## Installation
 
-Install **Aetralis Language** from the Visual Studio Code Marketplace, or install a downloaded `.vsix` package via **Extensions → ... → Install from VSIX**.
+Install **Aetralis Language** [from the Marketplace](https://marketplace.visualstudio.com/items?itemName=softwaremaestro.aetralis-language&ssr=false#overview), or install a downloaded `.vsix` package via **Extensions → ... → Install from VSIX**. Any file with the `.atlx` extension is recognized automatically.
 
-Any file with the `.atlx` extension is recognized automatically.
+## Development
+
+The extension has no build step — `extension.js` and `src/*.js` run directly. To package a `.vsix`:
+
+```
+npm run package
+```
+
+This uses [`@vscode/vsce`](https://github.com/microsoft/vscode-vsce) and packages `docs/marketplace-readme.md` as the extension's Marketplace overview page (a shorter, more general description than this file).
 
 ## Contributing
 
