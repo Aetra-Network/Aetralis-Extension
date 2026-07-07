@@ -42,7 +42,7 @@ This uses [`@vscode/vsce`](https://github.com/microsoft/vscode-vsce) and package
 
 ## Contributing
 
-Issues and pull requests are welcome at the [repository](https://github.com/Aetra-Network/Aetralis-Extension). See `CHANGELOG.md` for the history of released versions.
+Issues and pull requests are welcome at the [repository](https://github.com/Aetra-Network/Aetralis-Extension).
 
 ## License
 
