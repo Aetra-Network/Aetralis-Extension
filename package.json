@@ -15,7 +15,7 @@
   "icon": "assets/atlx.png",
   "license": "MIT",
   "scripts": {
-    "package": "npx --yes @vscode/vsce package --readme-path docs/marketplace-readme.md"
+    "package": "node -e \"for (const f of require('fs').readdirSync('.')) if (f.endsWith('.vsix')) require('fs').unlinkSync(f)\" && npx --yes @vscode/vsce package --readme-path docs/marketplace-readme.md"
   },
   "engines": {
     "vscode": "^1.85.0"
