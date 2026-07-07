@@ -1,6 +1,6 @@
 'use strict';
 const vscode = require('vscode');
-const { SEND_MODE_DOCS, WORD_DOCS, ANNOTATION_DOCS, ANNOTATION_SNIPPETS } = require('./constants');
+const { SEND_MODE_DOCS, WORD_DOCS, ANNOTATION_DOCS, ANNOTATION_SNIPPETS, LANGUAGE_KEYWORDS, BUILTIN_FUNCTIONS } = require('./constants');
 const { mergedIndex } = require('./symbolIndex');
 const { renderStructHover, renderEnumHover, renderFunctionHover } = require('./hoverProvider');
 const { md } = require('./markdown');
@@ -85,8 +85,26 @@ const completionProvider = {
     items.push(sendCall);
 
     for (const word of Object.keys(WORD_DOCS)) {
+      // Builtin callables get their own Function-kind item below; buildMessage
+      // already has a dedicated snippet above.
+      if (BUILTIN_FUNCTIONS.has(word)) continue;
       const item = new vscode.CompletionItem(word, vscode.CompletionItemKind.Keyword);
       item.documentation = md(WORD_DOCS[word]);
+      items.push(item);
+    }
+    for (const word of LANGUAGE_KEYWORDS) {
+      if (WORD_DOCS[word]) continue;
+      const item = new vscode.CompletionItem(word, vscode.CompletionItemKind.Keyword);
+      item.detail = 'keyword';
+      items.push(item);
+    }
+    for (const fn of BUILTIN_FUNCTIONS) {
+      // buildMessage has a richer snippet above; `address` is offered as a type.
+      if (fn === 'buildMessage' || fn === 'address') continue;
+      const item = new vscode.CompletionItem(fn, vscode.CompletionItemKind.Function);
+      item.detail = 'builtin function';
+      if (WORD_DOCS[fn]) item.documentation = md(WORD_DOCS[fn]);
+      item.insertText = new vscode.SnippetString(fn + '($0)');
       items.push(item);
     }
     for (const typ of ['uint2', 'uint4', 'uint8', 'uint16', 'uint32', 'uint64', 'uint128', 'uint256', 'int2', 'int4', 'int8', 'int16', 'int32', 'int64', 'coins', 'address', 'bool', 'string', 'bytes', 'Code', 'Segment', 'Chunk']) {

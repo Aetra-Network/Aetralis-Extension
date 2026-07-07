@@ -111,6 +111,15 @@ const WORD_DOCS = {
   int4: '4-bit signed integer (-8..7).'
 };
 
+// Core language words offered in completion beyond the documented WORD_DOCS
+// entries. Mirrors the TextMate grammar's keyword.control / keyword.declaration
+// sets plus literal/self forms.
+const LANGUAGE_KEYWORDS = [
+  'if', 'else', 'while', 'do', 'repeat', 'for', 'break', 'continue', 'return',
+  'import', 'contract', 'struct', 'enum', 'type', 'func',
+  'true', 'false', 'self'
+];
+
 // Callable without a receiver — used both for completion and for the
 // "unknown function" diagnostic so builtins never get flagged.
 const BUILTIN_FUNCTIONS = new Set([
@@ -158,6 +167,7 @@ module.exports = {
   ANNOTATION_DOCS,
   SEND_MODE_DOCS,
   WORD_DOCS,
+  LANGUAGE_KEYWORDS,
   BUILTIN_FUNCTIONS,
   BANNED_WORDS,
   ANNOTATION_SNIPPETS,
