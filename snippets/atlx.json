@@ -1,0 +1,138 @@
+{
+  "Storage struct": {
+    "prefix": "storage",
+    "body": [
+      "@storage",
+      "struct ${1:Storage} {",
+      "    ${2:owner}: ${3:address}",
+      "}"
+    ],
+    "description": "Persistent storage schema"
+  },
+  "Message struct": {
+    "prefix": "message",
+    "body": [
+      "@message(0x${1:1001})",
+      "struct ${2:Name} {",
+      "    ${3:field}: ${4:uint32}",
+      "}"
+    ],
+    "description": "Typed message body with opcode"
+  },
+  "Contract skeleton": {
+    "prefix": "contract",
+    "body": [
+      "contract ${1:Name} {",
+      "    storage: ${2:Storage}",
+      "    incomingMessages: ${3:InternalMsg}",
+      "",
+      "    @store",
+      "    func ${2:Storage}.load() {",
+      "        return ${2:Storage}.fromChunk(contract.getData())",
+      "    }",
+      "",
+      "    @store",
+      "    func ${2:Storage}.save(self) {",
+      "        contract.setData(self.toChunk())",
+      "    }",
+      "",
+      "    @internal",
+      "    func onInternalMessage(in: InMessage) {",
+      "        const msg = lazy ${3:InternalMsg}.fromSegment(in.body)",
+      "",
+      "        match (msg) {",
+      "            else => {",
+      "                assert (in.body.isEmpty()) throw ${4:ERR_BAD_MSG}",
+      "            }",
+      "        }",
+      "    }",
+      "}"
+    ],
+    "description": "Canonical contract skeleton"
+  },
+  "Internal handler": {
+    "prefix": "oninternal",
+    "body": [
+      "@internal",
+      "func onInternalMessage(in: InMessage) {",
+      "    const msg = lazy ${1:InternalMsg}.fromSegment(in.body)",
+      "",
+      "    match (msg) {",
+      "        ${2:Inc} => {",
+      "            var st = lazy ${3:Storage}.load()",
+      "            $0",
+      "            st.save()",
+      "        }",
+      "        else => {",
+      "            assert (in.body.isEmpty()) throw ${4:ERR_BAD_MSG}",
+      "        }",
+      "    }",
+      "}"
+    ],
+    "description": "Reserved internal message handler"
+  },
+  "External handler": {
+    "prefix": "onexternal",
+    "body": [
+      "@external(inMsg: Segment)",
+      "func onExternalMessage(inMsg: Segment) {",
+      "    const msg = lazy ${1:ExternalMsg}.fromSegment(inMsg)",
+      "",
+      "    match (msg) {",
+      "        ${2:Touch} => {",
+      "            var st = lazy ${3:Storage}.load()",
+      "            $0",
+      "            st.save()",
+      "        }",
+      "        else => {",
+      "            assert (inMsg.isEmpty()) throw ${4:ERR_BAD_MSG}",
+      "        }",
+      "    }",
+      "}"
+    ],
+    "description": "Reserved external message handler"
+  },
+  "Bounced handler": {
+    "prefix": "onbounced",
+    "body": [
+      "@bounced",
+      "func onBouncedMessage(in: InMessageBounced) {",
+      "    in.bouncedBody.skipBouncedPrefix()",
+      "    $0",
+      "}"
+    ],
+    "description": "Reserved bounced message handler"
+  },
+  "Getter": {
+    "prefix": "getter",
+    "body": [
+      "@get",
+      "func ${1:name}(): ${2:int64} {",
+      "    const st = lazy ${3:Storage}.load()",
+      "    return st.${4:field}",
+      "}"
+    ],
+    "description": "Read-only getter"
+  },
+  "Assert throw": {
+    "prefix": "assert",
+    "body": "assert (${1:cond}) throw ${2:ERR_CODE}",
+    "description": "Canonical validation form"
+  },
+  "Build message": {
+    "prefix": "buildmessage",
+    "body": [
+      "const ${1:out} = buildMessage({",
+      "    bounce: BounceMode.${2:Only256BitsOfBody},",
+      "    amount: ${3:0},",
+      "    receiver: ${4:dest},",
+      "    body: ${5:Ping} {",
+      "        $0",
+      "    }",
+      "})",
+      "",
+      "${1:out}.send(${6:SEND_BOUNCE_ON_FAIL})"
+    ],
+    "description": "Outbound message construction and send"
+  }
+}

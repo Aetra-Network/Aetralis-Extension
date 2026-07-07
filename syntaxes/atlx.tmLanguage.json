@@ -1,0 +1,166 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Aetralis",
+  "scopeName": "source.atlx",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#annotations" },
+    { "include": "#contract-meta" },
+    { "include": "#for-in" },
+    { "include": "#control" },
+    { "include": "#builtin-namespaces" },
+    { "include": "#func-reserved-decl" },
+    { "include": "#reserved-handlers" },
+    { "include": "#func-method-decl" },
+    { "include": "#func-decl" },
+    { "include": "#declarations" },
+    { "include": "#bindings" },
+    { "include": "#self" },
+    { "include": "#language-constants" },
+    { "include": "#caps-constants" },
+    { "include": "#numbers" },
+    { "include": "#builtin-functions" },
+    { "include": "#primitive-types" },
+    { "include": "#container-types" },
+    { "include": "#user-functions" },
+    { "include": "#user-types" },
+    { "include": "#operators" },
+    { "include": "#punctuation" },
+    { "include": "#identifiers" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.atlx",
+          "match": "//.*"
+        },
+        {
+          "name": "comment.block.atlx",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.atlx",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.atlx",
+          "match": "\\\\[ntr\"\\\\]"
+        }
+      ]
+    },
+    "annotations": {
+      "name": "storage.type.annotation.atlx",
+      "match": "@(?:internal|external|bounced|get|pure|impure|storage|message|store)\\b"
+    },
+    "contract-meta": {
+      "match": "\\b(author|description|version|storage|incomingMessages|incomingExternal)(?=\\s*:)",
+      "name": "keyword.other.contract-meta.atlx"
+    },
+    "for-in": {
+      "match": "\\b(for)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s+(in)\\b",
+      "captures": {
+        "1": { "name": "keyword.control.atlx" },
+        "2": { "name": "variable.other.atlx" },
+        "3": { "name": "keyword.control.atlx" }
+      }
+    },
+    "control": {
+      "name": "keyword.control.atlx",
+      "match": "\\b(?:if|else|while|do|repeat|for|match|break|continue|return|assert|throw)\\b"
+    },
+    "builtin-namespaces": {
+      "name": "support.class.builtin-namespace.atlx",
+      "match": "\\b(?:contract|random)(?=\\s*\\.)"
+    },
+    "func-reserved-decl": {
+      "match": "\\b(func)\\s+(onInternalMessage|onExternalMessage|onBouncedMessage)\\b",
+      "captures": {
+        "1": { "name": "keyword.declaration.atlx" },
+        "2": { "name": "support.function.reserved-handler.atlx" }
+      }
+    },
+    "reserved-handlers": {
+      "name": "support.function.reserved-handler.atlx",
+      "match": "\\b(?:onInternalMessage|onExternalMessage|onBouncedMessage)\\b"
+    },
+    "func-method-decl": {
+      "match": "\\b(func)\\s+([A-Z][A-Za-z0-9_]*)\\s*(\\.)\\s*([A-Za-z_][A-Za-z0-9_]*)",
+      "captures": {
+        "1": { "name": "keyword.declaration.atlx" },
+        "2": { "name": "entity.name.type.atlx" },
+        "3": { "name": "punctuation.atlx" },
+        "4": { "name": "entity.name.function.atlx" }
+      }
+    },
+    "func-decl": {
+      "match": "\\b(func)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+      "captures": {
+        "1": { "name": "keyword.declaration.atlx" },
+        "2": { "name": "entity.name.function.atlx" }
+      }
+    },
+    "declarations": {
+      "name": "keyword.declaration.atlx",
+      "match": "\\b(?:import|contract|struct|enum|type|func)\\b"
+    },
+    "bindings": {
+      "name": "storage.modifier.binding.atlx",
+      "match": "\\b(?:const|var|lazy|mutate|set)\\b"
+    },
+    "self": {
+      "name": "variable.language.self.atlx",
+      "match": "\\bself\\b"
+    },
+    "language-constants": {
+      "name": "constant.language.atlx",
+      "match": "\\b(?:true|false|null)\\b"
+    },
+    "caps-constants": {
+      "name": "constant.other.caps.atlx",
+      "match": "\\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\\b"
+    },
+    "numbers": {
+      "name": "constant.numeric.atlx",
+      "match": "\\b(?:0[xX][0-9A-Fa-f]+|[0-9]+)\\b"
+    },
+    "builtin-functions": {
+      "name": "support.function.builtin.atlx",
+      "match": "\\b(?:buildMessage|counterfactualAddress|autoDeployAddress|send|refund|emit|now|getBalance|random|getAddress|getOriginalBalance|getAttachedValue|logicalTime|currentBlockLogicalTime|setCodePostponed|isSignatureValid|isSegmentSignatureValid|aet|getData|setData|fromChunk|toChunk|fromSegment|fromHex|fromBase64|hash|bitsHash|skipBouncedPrefix|isEmpty|uint256|range|getSeed|setSeed|initialize|initializeBy)(?=\\s*\\()"
+    },
+    "primitive-types": {
+      "name": "support.type.primitive.atlx",
+      "match": "\\b(?:bool|coins|address|bytes|string|timestamp|hash32|hash|u2|u4|u8|u16|u32|u64|u128|u256|i2|i4|i8|i16|i32|i64|i128|i256|uint2|uint4|uint8|uint16|uint32|uint64|uint128|uint256|int2|int4|int8|int16|int32|int64|int128|int256|Coins|Address|Timestamp|Hash|Bytes)\\b"
+    },
+    "container-types": {
+      "name": "support.type.container.atlx",
+      "match": "\\b(?:Chunk|Segment|ChunkCursor|ChunkRef|ChunkLink|Option|Result|List|Map|Code|StateInit|InMessage|InMessageBounced|BounceMode)\\b"
+    },
+    "user-functions": {
+      "name": "entity.name.function.atlx",
+      "match": "\\b[a-z_][A-Za-z0-9_]*(?=\\s*\\()"
+    },
+    "user-types": {
+      "name": "entity.name.type.atlx",
+      "match": "\\b[A-Z][A-Za-z0-9_]*\\b"
+    },
+    "operators": {
+      "name": "keyword.operator.atlx",
+      "comment": "Unicode ≠ ⇒ ⇐ ⇔ are styled as operators (same as their ASCII !=/=>/<-/<=> forms) wherever they appear, e.g. if pasted from math notation or a doc comment example.",
+      "match": "=>|->|<=>|==|!=|<=|>=|&&|\\|\\||\\?\\?|\\+=|-=|<<|>>|≠|⇒|⇐|⇔|[-+*/%&|^~!<>=?]"
+    },
+    "punctuation": {
+      "name": "punctuation.atlx",
+      "match": "[{}()\\[\\],.:;]"
+    },
+    "identifiers": {
+      "name": "variable.other.atlx",
+      "match": "\\b[a-z_][A-Za-z0-9_]*\\b"
+    }
+  }
+}

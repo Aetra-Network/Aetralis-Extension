@@ -1,0 +1,193 @@
+{
+  "name": "aetralis-language",
+  "displayName": "Aetralis Language",
+  "description": "Language support for Aetralis (.atlx) smart contracts.",
+  "version": "1.1.0",
+  "publisher": "softwaremaestro",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Aetra-Network/Aetralis-Extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Aetra-Network/Aetralis-Extension/issues"
+  },
+  "homepage": "https://github.com/Aetra-Network/Aetralis-Extension#readme",
+  "icon": "assets/atlx.png",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:atlx"
+  ],
+  "keywords": [
+    "aetralis",
+    "atlx",
+    "smart-contracts",
+    "blockchain",
+    "syntax-highlighting"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "atlx",
+        "aliases": [
+          "Aetralis",
+          "ATLX"
+        ],
+        "extensions": [
+          ".atlx"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./assets/atlx.png",
+          "dark": "./assets/atlx.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "atlx",
+        "scopeName": "source.atlx",
+        "path": "./syntaxes/atlx.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "atlx",
+        "path": "./snippets/atlx.json"
+      }
+    ],
+    "configurationDefaults": {
+      "[atlx]": {
+        "editor.bracketPairColorization.enabled": false
+      },
+      "editor.tokenColorCustomizations": {
+        "textMateRules": [
+          {
+            "scope": [
+              "comment.line.double-slash.atlx",
+              "comment.block.atlx"
+            ],
+            "settings": {
+              "foreground": "#7A9D54"
+            }
+          },
+          {
+            "scope": "string.quoted.double.atlx",
+            "settings": {
+              "foreground": "#C9A575"
+            }
+          },
+          {
+            "scope": "constant.character.escape.atlx",
+            "settings": {
+              "foreground": "#E0BE8C"
+            }
+          },
+          {
+            "scope": "keyword.declaration.atlx",
+            "settings": {
+              "foreground": "#C792EA"
+            }
+          },
+          {
+            "scope": "storage.type.annotation.atlx",
+            "settings": {
+              "foreground": "#FFC670",
+              "fontStyle": "bold italic"
+            }
+          },
+          {
+            "scope": "keyword.other.contract-meta.atlx",
+            "settings": {
+              "foreground": "#29D3FF"
+            }
+          },
+          {
+            "scope": "support.function.reserved-handler.atlx",
+            "settings": {
+              "foreground": "#DCDCAA",
+              "fontStyle": "bold"
+            }
+          },
+          {
+            "scope": "keyword.control.atlx",
+            "settings": {
+              "foreground": "#E06C75"
+            }
+          },
+          {
+            "scope": [
+              "storage.modifier.binding.atlx",
+              "variable.language.self.atlx"
+            ],
+            "settings": {
+              "foreground": "#E5C07B"
+            }
+          },
+          {
+            "scope": [
+              "support.function.builtin.atlx",
+              "support.class.builtin-namespace.atlx"
+            ],
+            "settings": {
+              "foreground": "#56B6C2"
+            }
+          },
+          {
+            "scope": "support.type.primitive.atlx",
+            "settings": {
+              "foreground": "#61AFEF"
+            }
+          },
+          {
+            "scope": [
+              "support.type.container.atlx",
+              "entity.name.type.atlx"
+            ],
+            "settings": {
+              "foreground": "#4FC1FF"
+            }
+          },
+          {
+            "scope": "entity.name.function.atlx",
+            "settings": {
+              "foreground": "#DCDCAA"
+            }
+          },
+          {
+            "scope": [
+              "constant.language.atlx",
+              "constant.numeric.atlx",
+              "constant.other.caps.atlx"
+            ],
+            "settings": {
+              "foreground": "#D19A66"
+            }
+          },
+          {
+            "scope": [
+              "keyword.operator.atlx",
+              "punctuation.atlx"
+            ],
+            "settings": {
+              "foreground": "#ABB2BF"
+            }
+          },
+          {
+            "scope": "variable.other.atlx",
+            "settings": {
+              "foreground": "#ABB2BF"
+            }
+          }
+        ]
+      }
+    }
+  }
+}
