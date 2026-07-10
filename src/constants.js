@@ -89,6 +89,43 @@ const SEND_MODE_VALUES = {
   SEND_ESTIMATE_ONLY: 1024
 };
 
+const INTEGER_WIDTHS = [2, 4, 8, 16, 32, 64, 128, 256];
+const INTEGER_TYPE_NAMES = ['uint', 'int'];
+const INTEGER_TYPE_DOCS = {
+  uint: 'Alias of `uint256` — the full-width 256-bit unsigned integer. Writing `uint` without a width is the canonical shorthand.',
+  int: 'Alias of `int256` — the full-width 256-bit signed integer. Writing `int` without a width is the canonical shorthand.'
+};
+for (const width of INTEGER_WIDTHS) {
+  const uintName = 'uint' + width;
+  const intName = 'int' + width;
+  INTEGER_TYPE_NAMES.push(uintName, intName);
+  INTEGER_TYPE_DOCS[uintName] = width + '-bit unsigned integer (range 0..2^' + width + '-1). Canonical form.';
+  INTEGER_TYPE_DOCS[intName] = width + '-bit signed integer (range -2^' + (width - 1) + '..2^' + (width - 1) + '-1). Canonical form.';
+}
+
+const MAP_TYPE_DOC = [
+  'Canonical dictionary type `Map<K, V>`.',
+  '',
+  'Methods:',
+  '- `.get(key)` — the value, or `null` when the key is absent;',
+  '- `.set(key, value)` — insert or update (mutating);',
+  '- `.has(key)` — `bool`;',
+  '- `.delete(key)` — remove a key (mutating);',
+  '- `.keys(max)` — bounded list of keys;',
+  '- `.entries(max)` — bounded list of `(key, value)` pairs;',
+  '- `.empty()` — whether the map has no entries;',
+  '- `.len()` — on a list returned by `.keys()` / `.entries()`.',
+  '',
+  '`.set` / `.delete` mutate state and are rejected in `@get` / `@pure`.',
+  '',
+  'Chaining on `.keys()` / `.entries()` results is unsupported — bind to a local first: `const keys = m.keys(255)` then `keys.len()`.'
+];
+
+const SEND_METHOD_DOC = 'Sends a built message. `.send()` takes **no arguments** — delivery semantics live exclusively in the optional `mode:` field of `buildMessage({ ... })` (omitted = `SEND_DEFAULT`).';
+
+// Shared footer for every SEND_* hover / completion doc.
+const SEND_MODE_COMBINE_NOTE = 'Modes combine with `+` in the optional `mode:` field of `buildMessage`; when `mode:` is omitted the message is sent with `SEND_DEFAULT`.';
+
 // Exact set of keys the compiler accepts inside a `buildMessage({ ... })`
 // literal (validateBuildMessageFields). Any other key is E_BUILD_MESSAGE_FIELD.
 const BUILD_MESSAGE_FIELDS = [
@@ -103,20 +140,19 @@ const BUILD_MESSAGE_FIELD_DOCS = {
   opcode: 'Explicit message opcode override (normally derived from the `@message` struct).',
   queryId: 'Optional correlation id echoed back by the receiver.',
   stateInit: 'State init (code + data) for deploying the receiver.',
-  mode: 'Send mode: a `+`-combination of `SEND_*` constants, validated at compile time.',
-  textComment: 'A single human-readable text comment. At most one per message.'
+  mode: 'Optional delivery semantics — a compile-time combination of `SEND_*` flags joined with `+`. Defaults to `SEND_DEFAULT` when omitted. This is the only home for send modes: `.send()` takes no arguments.',
+  textComment: 'Optional message memo — at most one per message, any characters (UTF-8), max 512 bytes. Priced per byte via the normal message fee and bound into the message id, so it cannot be forged in flight. Wallets and explorers show it as the transaction comment.'
 };
 
 // Map<K,V> instance methods offered in completion and recognized as receiver
 // calls (so they are not flagged as unknown functions).
 const MAP_METHODS = {
-  get: 'Returns the value for a key, or the empty/null value when absent.',
+  get: 'Returns the value for a key, or `null` when the key is absent.',
   set: 'Inserts or updates the value for a key. Mutating — illegal in `@get`/`@pure`.',
-  has: 'Reports whether a key is present.',
+  has: 'Reports whether a key is present (`bool`).',
   delete: 'Removes a key. Mutating — illegal in `@get`/`@pure`.',
-  keys: 'Iterates the keys of the map.',
-  entries: 'Iterates the `(key, value)` pairs of the map.',
-  values: 'Iterates the values of the map.',
+  keys: '`.keys(max)` — returns a bounded list of keys. Bind it to a local before calling `.len()` on it.',
+  entries: '`.entries(max)` — returns a bounded list of `(key, value)` pairs. Bind it to a local before calling `.len()` on it.',
   empty: 'Reports whether the map has no entries.'
 };
 
@@ -137,21 +173,21 @@ const NO_ARG_ANNOTATIONS = new Set([
 ]);
 
 const SEND_MODE_DOCS = {
-  SEND_DEFAULT: 'Ordinary send. Fees are paid from the attached message amount.',
-  SEND_CARRY_REMAINDER: 'Forwards the remaining value of the inbound message along with this send.',
-  SEND_DRAIN_BALANCE: 'Sends the entire remaining contract balance with the message.',
-  SEND_ESTIMATE_ONLY: 'Estimates fees only — the message is not actually sent.',
-  SEND_FEE_FROM_BALANCE: 'Pays the forward fee from the contract balance instead of the message value.',
-  SEND_IGNORE_ERRORS: 'Ignores errors during send and continues execution.',
-  SEND_BOUNCE_ON_FAIL: 'Bounces the message back to this contract if delivery fails.',
-  SEND_DESTROY_IF_EMPTY: 'Destroys the contract if its balance becomes zero after the send.'
+  SEND_DEFAULT: 'Ordinary send — fees are paid from the message value.',
+  SEND_FEE_FROM_BALANCE: 'The forwarding fee is paid from the contract balance instead of the message amount.',
+  SEND_IGNORE_ERRORS: 'If delivery fails, the message is dropped instead of being retried every block.',
+  SEND_BOUNCE_ON_FAIL: 'If execution on the receiver fails, the message bounces back to the sender\'s `@bounced` handler.',
+  SEND_DESTROY_IF_EMPTY: 'After the send debit, if the source balance reached zero the contract is irreversibly deactivated — status `deleted`, storage cleared. Pairs with `SEND_DRAIN_BALANCE` (the withdraw-all-and-self-destruct idiom).',
+  SEND_CARRY_REMAINDER: 'Forwards the remaining value of the inbound message instead of a fixed amount. Mutually exclusive with `SEND_DRAIN_BALANCE`.',
+  SEND_DRAIN_BALANCE: 'Sends the contract\'s **entire** remaining balance (`amount` is ignored). To keep a reserve, omit this flag and use an explicit amount. Mutually exclusive with `SEND_CARRY_REMAINDER`.',
+  SEND_ESTIMATE_ONLY: 'Dry-run — computes fees without sending. Cannot be combined with any other flag.'
 };
 
 const WORD_DOCS = {
   onInternalMessage: 'Reserved name for the `@internal` handler. Signature: `func onInternalMessage(in: InMessage)`. Cannot be used for any other function.',
   onExternalMessage: 'Reserved name for the `@external` handler. Signature: `func onExternalMessage(inMsg: Segment)`. Cannot be used for any other function.',
   onBouncedMessage: 'Reserved name for the `@bounced` handler. Signature: `func onBouncedMessage(in: InMessageBounced)`. Cannot be used for any other function.',
-  buildMessage: 'Canonical builder for outbound messages: `buildMessage({ receiver, body, bounce, amount, mode, textComment })`. `receiver` and `body` are required; `mode` is a `+`-combination of `SEND_*` constants. Send it with `.send(SEND_...)`.',
+  buildMessage: 'Canonical builder for outbound messages: `buildMessage({ receiver, body, bounce, amount, mode, textComment })`. `receiver` and `body` are required; `mode` and `textComment` are optional. Send it with `.send()`.',
   aet: 'Compile-time helper: converts a decimal AET string into base-unit `coins`, e.g. `aet("1.5")`. Rejects excess precision instead of rounding.',
   lazy: 'Deferred decoding/reading: the value is materialized deterministically on first use, e.g. `const st = lazy Storage.load()`.',
   mutate: 'Marks a receiver or argument as mutable inside the function, e.g. `func Storage.touch(mutate self)`.',
@@ -165,11 +201,7 @@ const WORD_DOCS = {
   Segment: 'Bounded read view over a chunk; the inbound body-reading form, e.g. `Msg.fromSegment(inMsg)`.',
   Chunk: 'Canonical chunk-backed data unit; `Chunk<T>?` stores a typed out-of-line payload. Hover the `T` to see its fields.',
   Code: 'Canonical contract bytecode value. Build with `Code.fromChunk/fromHex/fromBase64`, hash with `.hash()`.',
-  BounceMode: 'Bounce policy for `buildMessage`: `BounceMode.NoBounce`, `BounceMode.Only256BitsOfBody`.',
-  uint2: '2-bit unsigned integer (0..3). Small width means cheaper storage.',
-  uint4: '4-bit unsigned integer (0..15). Small width means cheaper storage.',
-  int2: '2-bit signed integer (-2..1).',
-  int4: '4-bit signed integer (-8..7).'
+  BounceMode: 'Bounce policy for `buildMessage`: `BounceMode.NoBounce`, `BounceMode.Only256BitsOfBody`.'
 };
 
 // Core language words offered in completion beyond the documented WORD_DOCS
@@ -228,11 +260,16 @@ module.exports = {
   ANNOTATION_DOCS,
   SEND_MODE_DOCS,
   SEND_MODE_VALUES,
+  INTEGER_TYPE_DOCS,
+  INTEGER_TYPE_NAMES,
   BUILD_MESSAGE_FIELDS,
   BUILD_MESSAGE_FIELD_DOCS,
+  MAP_TYPE_DOC,
   MAP_METHODS,
   LEGACY_DECLARATIONS,
   NO_ARG_ANNOTATIONS,
+  SEND_METHOD_DOC,
+  SEND_MODE_COMBINE_NOTE,
   WORD_DOCS,
   LANGUAGE_KEYWORDS,
   BUILTIN_FUNCTIONS,

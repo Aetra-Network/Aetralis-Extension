@@ -162,7 +162,7 @@
     },
     "primitive-types": {
       "name": "support.type.primitive.atlx",
-      "match": "\\b(?:bool|coins|address|bytes|string|timestamp|hash32|hash|u2|u4|u8|u16|u32|u64|u128|u256|i2|i4|i8|i16|i32|i64|i128|i256|uint2|uint4|uint8|uint16|uint32|uint64|uint128|uint256|int2|int4|int8|int16|int32|int64|int128|int256|Coins|Address|Timestamp|Hash|Bytes)\\b"
+      "match": "\\b(?:bool|coins|address|bytes|string|timestamp|hash32|hash|uint|int|u2|u4|u8|u16|u32|u64|u128|u256|i2|i4|i8|i16|i32|i64|i128|i256|uint2|uint4|uint8|uint16|uint32|uint64|uint128|uint256|int2|int4|int8|int16|int32|int64|int128|int256|Coins|Address|Timestamp|Hash|Bytes)\\b"
     },
     "container-types": {
       "name": "support.type.container.atlx",

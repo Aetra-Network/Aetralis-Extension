@@ -1,6 +1,22 @@
 'use strict';
 const vscode = require('vscode');
-const { SEND_MODE_DOCS, WORD_DOCS, ANNOTATION_DOCS, ANNOTATION_SNIPPETS, LANGUAGE_KEYWORDS, BUILTIN_FUNCTIONS, BUILD_MESSAGE_FIELDS, BUILD_MESSAGE_FIELD_DOCS, MAP_METHODS } = require('./constants');
+const {
+  SEND_MODE_DOCS,
+  SEND_MODE_VALUES,
+  SEND_MODE_COMBINE_NOTE,
+  WORD_DOCS,
+  ANNOTATION_DOCS,
+  ANNOTATION_SNIPPETS,
+  LANGUAGE_KEYWORDS,
+  BUILTIN_FUNCTIONS,
+  BUILD_MESSAGE_FIELDS,
+  BUILD_MESSAGE_FIELD_DOCS,
+  MAP_METHODS,
+  INTEGER_TYPE_NAMES,
+  INTEGER_TYPE_DOCS,
+  MAP_TYPE_DOC,
+  SEND_METHOD_DOC
+} = require('./constants');
 const { mergedIndex } = require('./symbolIndex');
 const { renderStructHover, renderEnumHover, renderFunctionHover } = require('./hoverProvider');
 const { md } = require('./markdown');
@@ -46,8 +62,8 @@ const completionProvider = {
 
     for (const [mode, doc] of Object.entries(SEND_MODE_DOCS)) {
       const item = new vscode.CompletionItem(mode, vscode.CompletionItemKind.EnumMember);
-      item.documentation = md(['**' + mode + '** — send mode.', '', doc]);
-      item.detail = 'send mode';
+      item.documentation = md(['**' + mode + '** = `' + SEND_MODE_VALUES[mode] + '` — send mode.', '', doc, '', SEND_MODE_COMBINE_NOTE]);
+      item.detail = 'send mode (' + SEND_MODE_VALUES[mode] + ')';
       item.sortText = '1' + mode;
       items.push(item);
     }
@@ -70,11 +86,11 @@ const completionProvider = {
       '- `body` — typed `@message` struct literal (**required**);',
       '- `bounce` — `BounceMode.NoBounce` or `BounceMode.Only256BitsOfBody`;',
       '- `amount` — attached coins;',
-      '- `mode` — send mode, a `+`-combination of `SEND_*` constants;',
-      '- `textComment` — a single human-readable memo;',
+      '- `mode` — optional send mode, a `+`-combination of `SEND_*` constants;',
+      '- `textComment` — optional human-readable memo;',
       '- `opcode`, `queryId`, `stateInit` — advanced overrides.',
       '',
-      'Send the result with `.send(SEND_...)`.'
+      'Send the result with `.send()`. The send mode lives only in `buildMessage({ ..., mode: ... })`.'
     ]);
     build.sortText = '0buildMessage';
     items.push(build);
@@ -98,17 +114,16 @@ const completionProvider = {
       item.detail = 'Map method';
       item.documentation = md(['**Map.' + method + '** — dictionary method.', '', doc]);
       const takesArgs = method === 'get' || method === 'set' || method === 'has' || method === 'delete';
-      item.insertText = new vscode.SnippetString(method + (takesArgs ? '($0)' : '()'));
+      const bounded = method === 'keys' || method === 'entries';
+      item.insertText = new vscode.SnippetString(method + (bounded ? '(${1:255})' : takesArgs ? '($0)' : '()'));
       item.sortText = '3' + method;
       items.push(item);
     }
 
     const sendCall = new vscode.CompletionItem('send', vscode.CompletionItemKind.Snippet);
-    sendCall.insertText = new vscode.SnippetString(
-      'send(${1|SEND_DEFAULT,SEND_BOUNCE_ON_FAIL,SEND_CARRY_REMAINDER,SEND_DRAIN_BALANCE,SEND_FEE_FROM_BALANCE,SEND_IGNORE_ERRORS,SEND_ESTIMATE_ONLY,SEND_DESTROY_IF_EMPTY|})'
-    );
+    sendCall.insertText = new vscode.SnippetString('send()');
     sendCall.detail = 'Send a built message';
-    sendCall.documentation = md('Sends a `buildMessage` result with the chosen send mode. Hover a `SEND_*` name for its meaning.');
+    sendCall.documentation = md(SEND_METHOD_DOC);
     items.push(sendCall);
 
     for (const word of Object.keys(WORD_DOCS)) {
@@ -134,14 +149,15 @@ const completionProvider = {
       item.insertText = new vscode.SnippetString(fn + '($0)');
       items.push(item);
     }
-    for (const typ of ['uint2', 'uint4', 'uint8', 'uint16', 'uint32', 'uint64', 'uint128', 'uint256', 'int2', 'int4', 'int8', 'int16', 'int32', 'int64', 'coins', 'address', 'bool', 'string', 'bytes', 'Code', 'Segment', 'Chunk']) {
+    for (const typ of [...INTEGER_TYPE_NAMES, 'coins', 'address', 'bool', 'string', 'bytes', 'Code', 'Segment', 'Chunk']) {
       const item = new vscode.CompletionItem(typ, vscode.CompletionItemKind.TypeParameter);
       item.detail = 'type';
+      if (INTEGER_TYPE_DOCS[typ]) item.documentation = md(INTEGER_TYPE_DOCS[typ]);
       items.push(item);
     }
     const mapType = new vscode.CompletionItem('Map', vscode.CompletionItemKind.TypeParameter);
     mapType.detail = 'Map<K, V> — dictionary type';
-    mapType.documentation = md('Canonical dictionary type. Methods: `.get`, `.set`, `.has`, `.delete`, `.keys`, `.entries`, `.values`, `.empty`. `.set`/`.delete` mutate and are rejected in `@get`/`@pure`.');
+    mapType.documentation = md(['**type Map<K, V>**', '', ...MAP_TYPE_DOC]);
     mapType.insertText = new vscode.SnippetString('Map<${1:uint64}, ${2:uint64}>');
     items.push(mapType);
 

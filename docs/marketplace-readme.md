@@ -7,10 +7,10 @@ Aetralis is a purpose-built smart contract language. This extension gives it a p
 ## What it does
 
 - **Highlighting** that reflects the shape of the language rather than approximating it — every construct gets its own distinct, theme-independent color, so the same file looks the same whether you're on a light theme, a dark theme, or a custom one.
-- **Contextual documentation on hover** — point at any part of your code and see what it means, what rules govern it, and how it's meant to be used, without leaving the editor.
+- **Contextual documentation on hover** — point at `buildMessage.mode`, `textComment`, a `Map<K, V>`, a `uint*/int*` type, or the bare `uint` / `int` aliases and see what it means, what rules govern it, and how it's meant to be used, without leaving the editor.
 - **Completion that knows your project** — suggestions cover the language's own vocabulary as well as everything you've declared yourself, anywhere in your workspace. Start typing a name you've already used and it's offered back to you; accept it with Tab or a click, the same way any other suggestion works.
 - **Jump to definition** — navigate directly from a usage to where it's declared, including across files that reference one another.
-- **Inline diagnostics** that mirror the language's own structural rules, catching a class of mistakes immediately instead of after a full build.
+- **Inline diagnostics** that mirror the language's own structural rules, catching a class of mistakes immediately instead of after a full build, including invalid `buildMessage.mode` combinations and any `.send(...)` arguments.
 - A couple of small conveniences on top, like turning common comparison symbols into their proper mathematical form as you type.
 
 All of this runs entirely inside the editor: nothing is sent anywhere, and there is no separate compiler or language server process to install or manage.

@@ -19,8 +19,9 @@ const { maskNonCode, mergedIndex } = require('./symbolIndex');
 //   6) legacy declarations message/getter/event/wallet action (parser rejects);
 //   7) annotations other than @message may not carry an argument list;
 //   8) buildMessage({...}) — unknown/duplicate keys, missing receiver/body;
-//   9) send modes (buildMessage `mode:` and `.send(...)`) — must be SEND_*
-//      combined with +, no repeats, DRAIN/CARRY exclusive, ESTIMATE_ONLY alone;
+//   9) send modes (buildMessage `mode:` only) — must be SEND_* combined with +,
+//      no repeats, DRAIN/CARRY exclusive, ESTIMATE_ONLY alone; `.send()` takes
+//      no arguments and is just the method form of the built message.
 //  10) @get/@pure functions must not call mutating builtins (setData, save,
 //      touch, map set/delete) or send/emit/refund.
 // ---------------------------------------------------------------------------
@@ -212,7 +213,7 @@ function computeDiagnostics(document) {
     const name = m[1];
     if (CONTROL_KEYWORDS_BEFORE_PAREN.has(name)) continue;
     if (BUILTIN_FUNCTIONS.has(name)) continue;
-    if (index.enumVariants.has(name)) continue; // enum variant constructor, e.g. Deposit(amount: u64)
+    if (index.enumVariants.has(name)) continue; // enum variant constructor, e.g. Deposit(amount: uint64)
     // Receiver-style call (Type.method(...) or value.method(...)) — not
     // validated here; method existence checking would need real types.
     const before = text.slice(Math.max(0, m.index - 1), m.index);
@@ -260,7 +261,8 @@ function computeDiagnostics(document) {
       '`@' + ann + '` takes no arguments — declare parameters in the function signature instead (only `@message(opcode)` carries an argument).');
   }
 
-  // Rule 8 + 9: buildMessage({...}) field validation and send-mode checks.
+  // Rule 8 + 9: buildMessage({...}) field validation, buildMessage.mode
+  // checks, and `.send()` argument rejection.
   const bmRe = /\bbuildMessage\s*\(/g;
   while ((m = bmRe.exec(text)) !== null) {
     const parenIdx = m.index + m[0].length - 1;
@@ -291,13 +293,16 @@ function computeDiagnostics(document) {
     if (!seenField.has('body')) push(m.index, 'buildMessage'.length, 'buildMessage requires a `body` field.');
   }
 
-  // Rule 9 (cont.): `.send(mode)` / `send(mode)` argument.
-  const sendRe = /\bsend\s*\(/g;
+  // Rule 9 (cont.): `.send()` takes no arguments.
+  const sendRe = /\.\s*send\s*\(/g;
   while ((m = sendRe.exec(text)) !== null) {
     const parenIdx = m.index + m[0].length - 1;
     const parenEnd = matchBalanced(text, parenIdx);
     if (parenEnd < 0) continue;
-    validateSendMode(text.slice(parenIdx + 1, parenEnd), parenIdx + 1, push);
+    const arg = text.slice(parenIdx + 1, parenEnd);
+    if (arg.trim().length > 0) {
+      push(m.index, parenEnd - m.index + 1, '`.send()` takes no arguments — declare the send mode in buildMessage via the `mode:` field (e.g. `mode: SEND_BOUNCE_ON_FAIL`).');
+    }
   }
 
   // Rule 10: @get / @pure functions must not call mutating builtins or send.

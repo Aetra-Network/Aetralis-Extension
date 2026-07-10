@@ -131,7 +131,7 @@
       "    }",
       "})",
       "",
-      "${1:out}.send(${6:SEND_BOUNCE_ON_FAIL})"
+      "${1:out}.send()"
     ],
     "description": "Outbound message construction and send"
   },
@@ -149,7 +149,7 @@
       "    }",
       "})",
       "",
-      "${1:out}.send(SEND_BOUNCE_ON_FAIL)"
+      "${1:out}.send()"
     ],
     "description": "Outbound message with an explicit send mode and text comment"
   },
