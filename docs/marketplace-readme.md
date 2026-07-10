@@ -11,6 +11,7 @@ Aetralis is a purpose-built smart contract language. This extension gives it a p
 - **Completion that knows your project** — suggestions cover the language's own vocabulary as well as everything you've declared yourself, anywhere in your workspace. Start typing a name you've already used and it's offered back to you; accept it with Tab or a click, the same way any other suggestion works.
 - **Jump to definition** — navigate directly from a usage to where it's declared, including across files that reference one another.
 - **Inline diagnostics** that mirror the language's own structural rules, catching a class of mistakes immediately instead of after a full build, including invalid `buildMessage.mode` combinations and any `.send(...)` arguments.
+- **A shimmering highlight** on `@annotations`, the `contract` keyword, and `aet("...")` calls — an animated gradient sweep layered over their normal color, so the constructs that matter most catch your eye. Turn it off anytime via `aetralis.shimmer.enabled`.
 - A couple of small conveniences on top, like turning common comparison symbols into their proper mathematical form as you type.
 
 All of this runs entirely inside the editor: nothing is sent anywhere, and there is no separate compiler or language server process to install or manage.

@@ -6,6 +6,7 @@ const { completionProvider } = require('./src/completionProvider');
 const { computeDiagnostics } = require('./src/diagnostics');
 const { maskNonCode, indexSource, mergedIndex, docIndexCache, updateIndexFor, seedWorkspaceIndex } = require('./src/symbolIndex');
 const { registerUnicodeSubstitution } = require('./src/unicodeSubstitution');
+const { registerShimmerDecorations } = require('./src/shimmerDecorations');
 
 // ---------------------------------------------------------------------------
 // Activation.
@@ -20,6 +21,7 @@ function activate(context) {
     vscode.languages.registerDefinitionProvider(selector, definitionProvider),
     registerUnicodeSubstitution()
   );
+  registerShimmerDecorations(context);
 
   const collection = vscode.languages.createDiagnosticCollection('atlx');
   context.subscriptions.push(collection);

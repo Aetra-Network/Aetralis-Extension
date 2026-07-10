@@ -2,7 +2,7 @@
   "name": "aetralis-language",
   "displayName": "Aetralis Language",
   "description": "Language support for Aetralis (.atlx) smart contracts.",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "publisher": "softwaremaestro",
   "repository": {
     "type": "git",
@@ -15,7 +15,8 @@
   "icon": "assets/atlx.png",
   "license": "MIT",
   "scripts": {
-    "package": "node -e \"for (const f of require('fs').readdirSync('.')) if (f.endsWith('.vsix')) require('fs').unlinkSync(f)\" && npx --yes @vscode/vsce package --readme-path docs/marketplace-readme.md"
+    "package": "node -e \"for (const f of require('fs').readdirSync('.')) if (f.endsWith('.vsix')) require('fs').unlinkSync(f)\" && npx --yes @vscode/vsce package --readme-path docs/marketplace-readme.md",
+    "test": "node --test"
   },
   "engines": {
     "vscode": "^1.85.0"
@@ -66,6 +67,16 @@
         "path": "./snippets/atlx.json"
       }
     ],
+    "configuration": {
+      "title": "Aetralis",
+      "properties": {
+        "aetralis.shimmer.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Animate a gradient highlight sweep (\"shimmer\") across @annotations, the contract declaration keyword, and aet(\"...\") calls."
+        }
+      }
+    },
     "configurationDefaults": {
       "[atlx]": {
         "editor.bracketPairColorization.enabled": false,

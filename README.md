@@ -19,6 +19,7 @@ Editor support for Aetralis smart contracts (`.atlx`) in Visual Studio Code.
 - **Diagnostics** mirroring the compiler's rules for message handlers (`@internal` / `@external` / `@bounced`), `buildMessage.mode`, and legacy/removed syntax.
 - **Live symbol substitution** — `!=`, `=>`, `<=`, and `>=` turn into `≠`, `⇒`, `≤`, `≥` the instant you finish typing them; it's skipped automatically inside strings and comments.
 - **Comment-aware coloring** — brackets that appear inside a `//` or `/* */` comment are always colored as comment text (never as stray highlighted punctuation), and inline code wrapped in backticks inside a comment (`` `like this` ``) renders in italics.
+- **Shimmer** — `@annotations`, the `contract` declaration keyword, and `aet("...")` calls (the `aet` name and its string argument) get an animated gradient highlight sweep on top of their normal color. Toggle with `aetralis.shimmer.enabled`.
 
 ## Outbound Messages
 
@@ -54,7 +55,19 @@ Install **Aetralis Language** [from the Marketplace](https://marketplace.visuals
 
 ## Development
 
-The extension has no build step — `extension.js` and `src/*.js` run directly. To package a `.vsix`:
+The extension has no build step — `extension.js` and `src/*.js` run directly. Pure logic (color math, token matching) is covered by `node --test`:
+
+```
+npm test
+```
+
+`scripts/smoke.js` runs `activate()` end-to-end against a minimal in-process `vscode` stub (no real VS Code host needed) — a quick sanity check after touching wiring code like `extension.js` or `src/shimmerDecorations.js`:
+
+```
+node scripts/smoke.js
+```
+
+To package a `.vsix`:
 
 ```
 npm run package

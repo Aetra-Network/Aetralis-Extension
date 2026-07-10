@@ -1,5 +1,4 @@
 'use strict';
-const vscode = require('vscode');
 
 // ---------------------------------------------------------------------------
 // Symbol index — a single regex pass per document, no AST. Powers hover
@@ -8,6 +7,11 @@ const vscode = require('vscode');
 // diagnostic. Rebuilt per document on open/change (debounced) and merged
 // across every known document so cross-file `import`ed declarations
 // (e.g. token_shared.atlx) resolve too.
+//
+// `vscode` is required lazily, inside the two functions that actually touch
+// it (indexSource, seedWorkspaceIndex). That keeps maskNonCode/lineColOf/
+// parseStructFields/parseEnumVariants/mergedIndex loadable from a plain
+// Node process — src/shimmerMatcher.js and its unit tests depend on that.
 // ---------------------------------------------------------------------------
 
 /** Masks strings and comments with spaces, preserving offsets. */
@@ -73,6 +77,7 @@ function parseEnumVariants(body) {
 
 /** Builds a symbol index for one document's (masked) text. */
 function indexSource(text, uri) {
+  const vscode = require('vscode');
   const index = {
     structs: new Map(),
     enums: new Map(),
@@ -192,6 +197,7 @@ function mergedIndex(preferUri) {
 }
 
 async function seedWorkspaceIndex() {
+  const vscode = require('vscode');
   try {
     const files = await vscode.workspace.findFiles('**/*.atlx', '**/node_modules/**', 500);
     for (const uri of files) {
