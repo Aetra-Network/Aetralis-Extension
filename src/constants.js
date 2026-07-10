@@ -75,6 +75,67 @@ const ANNOTATION_DOCS = {
   ]
 };
 
+// Numeric bit values of every send mode — mirrors builtinSendModeValue in the
+// compiler (x/aetravm/compiler/compile.go). Drives the static send-mode
+// combination check in diagnostics.js.
+const SEND_MODE_VALUES = {
+  SEND_DEFAULT: 0,
+  SEND_FEE_FROM_BALANCE: 1,
+  SEND_IGNORE_ERRORS: 2,
+  SEND_BOUNCE_ON_FAIL: 16,
+  SEND_DESTROY_IF_EMPTY: 32,
+  SEND_CARRY_REMAINDER: 64,
+  SEND_DRAIN_BALANCE: 128,
+  SEND_ESTIMATE_ONLY: 1024
+};
+
+// Exact set of keys the compiler accepts inside a `buildMessage({ ... })`
+// literal (validateBuildMessageFields). Any other key is E_BUILD_MESSAGE_FIELD.
+const BUILD_MESSAGE_FIELDS = [
+  'bounce', 'amount', 'receiver', 'body', 'opcode', 'queryId', 'stateInit', 'mode', 'textComment'
+];
+
+const BUILD_MESSAGE_FIELD_DOCS = {
+  bounce: 'Bounce policy: `BounceMode.NoBounce` or `BounceMode.Only256BitsOfBody`.',
+  amount: 'Attached coins for the outbound message.',
+  receiver: 'Destination address. **Required.**',
+  body: 'Typed `@message` struct literal payload. **Required.**',
+  opcode: 'Explicit message opcode override (normally derived from the `@message` struct).',
+  queryId: 'Optional correlation id echoed back by the receiver.',
+  stateInit: 'State init (code + data) for deploying the receiver.',
+  mode: 'Send mode: a `+`-combination of `SEND_*` constants, validated at compile time.',
+  textComment: 'A single human-readable text comment. At most one per message.'
+};
+
+// Map<K,V> instance methods offered in completion and recognized as receiver
+// calls (so they are not flagged as unknown functions).
+const MAP_METHODS = {
+  get: 'Returns the value for a key, or the empty/null value when absent.',
+  set: 'Inserts or updates the value for a key. Mutating — illegal in `@get`/`@pure`.',
+  has: 'Reports whether a key is present.',
+  delete: 'Removes a key. Mutating — illegal in `@get`/`@pure`.',
+  keys: 'Iterates the keys of the map.',
+  entries: 'Iterates the `(key, value)` pairs of the map.',
+  values: 'Iterates the values of the map.',
+  empty: 'Reports whether the map has no entries.'
+};
+
+// Legacy top-level declaration keywords the parser rejects outright
+// (parser.go parseContractItem). Flagged as errors at declaration position.
+const LEGACY_DECLARATIONS = {
+  message: 'a legacy declaration and is not part of ATLX — declare a `@message(opcode)` struct and handle it in `@internal func onInternalMessage` / `@external func onExternalMessage`.',
+  getter: 'a legacy declaration and is not part of ATLX — use `@get func name(): T`.',
+  event: 'a legacy declaration and is not part of ATLX.',
+  wallet: 'a legacy declaration (`wallet action`) and is not part of ATLX.'
+};
+
+// Annotations that take NO argument list — only `@message(opcode)` may carry
+// an argument (parser.go parseAnnotationList). `@external(inMsg: Segment)` etc.
+// are rejected: parameters belong in the function signature.
+const NO_ARG_ANNOTATIONS = new Set([
+  'internal', 'external', 'bounced', 'get', 'pure', 'impure', 'storage', 'store'
+]);
+
 const SEND_MODE_DOCS = {
   SEND_DEFAULT: 'Ordinary send. Fees are paid from the attached message amount.',
   SEND_CARRY_REMAINDER: 'Forwards the remaining value of the inbound message along with this send.',
@@ -90,7 +151,7 @@ const WORD_DOCS = {
   onInternalMessage: 'Reserved name for the `@internal` handler. Signature: `func onInternalMessage(in: InMessage)`. Cannot be used for any other function.',
   onExternalMessage: 'Reserved name for the `@external` handler. Signature: `func onExternalMessage(inMsg: Segment)`. Cannot be used for any other function.',
   onBouncedMessage: 'Reserved name for the `@bounced` handler. Signature: `func onBouncedMessage(in: InMessageBounced)`. Cannot be used for any other function.',
-  buildMessage: 'Canonical builder for outbound messages: `buildMessage({ bounce, amount, receiver, body })`. Send it with `.send(SEND_...)`.',
+  buildMessage: 'Canonical builder for outbound messages: `buildMessage({ receiver, body, bounce, amount, mode, textComment })`. `receiver` and `body` are required; `mode` is a `+`-combination of `SEND_*` constants. Send it with `.send(SEND_...)`.',
   aet: 'Compile-time helper: converts a decimal AET string into base-unit `coins`, e.g. `aet("1.5")`. Rejects excess precision instead of rounding.',
   lazy: 'Deferred decoding/reading: the value is materialized deterministically on first use, e.g. `const st = lazy Storage.load()`.',
   mutate: 'Marks a receiver or argument as mutable inside the function, e.g. `func Storage.touch(mutate self)`.',
@@ -148,7 +209,7 @@ const BANNED_WORDS = {
 
 const ANNOTATION_SNIPPETS = {
   '@internal': '@internal\nfunc onInternalMessage(in: InMessage) {\n    $0\n}',
-  '@external': '@external(inMsg: Segment)\nfunc onExternalMessage(inMsg: Segment) {\n    $0\n}',
+  '@external': '@external\nfunc onExternalMessage(inMsg: Segment) {\n    $0\n}',
   '@bounced': '@bounced\nfunc onBouncedMessage(in: InMessageBounced) {\n    in.bouncedBody.skipBouncedPrefix()\n    $0\n}',
   '@get': '@get\nfunc ${1:name}(): ${2:int64} {\n    const st = lazy ${3:Storage}.load()\n    return st.${4:field}\n}',
   '@pure': '@pure\nfunc ${1:name}(${2:x}: ${3:int64}) {\n    return $0\n}',
@@ -166,6 +227,12 @@ module.exports = {
   HANDLERS,
   ANNOTATION_DOCS,
   SEND_MODE_DOCS,
+  SEND_MODE_VALUES,
+  BUILD_MESSAGE_FIELDS,
+  BUILD_MESSAGE_FIELD_DOCS,
+  MAP_METHODS,
+  LEGACY_DECLARATIONS,
+  NO_ARG_ANNOTATIONS,
   WORD_DOCS,
   LANGUAGE_KEYWORDS,
   BUILTIN_FUNCTIONS,

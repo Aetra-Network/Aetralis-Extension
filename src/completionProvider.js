@@ -1,6 +1,6 @@
 'use strict';
 const vscode = require('vscode');
-const { SEND_MODE_DOCS, WORD_DOCS, ANNOTATION_DOCS, ANNOTATION_SNIPPETS, LANGUAGE_KEYWORDS, BUILTIN_FUNCTIONS } = require('./constants');
+const { SEND_MODE_DOCS, WORD_DOCS, ANNOTATION_DOCS, ANNOTATION_SNIPPETS, LANGUAGE_KEYWORDS, BUILTIN_FUNCTIONS, BUILD_MESSAGE_FIELDS, BUILD_MESSAGE_FIELD_DOCS, MAP_METHODS } = require('./constants');
 const { mergedIndex } = require('./symbolIndex');
 const { renderStructHover, renderEnumHover, renderFunctionHover } = require('./hoverProvider');
 const { md } = require('./markdown');
@@ -66,15 +66,42 @@ const completionProvider = {
     build.detail = 'Outbound message builder';
     build.documentation = md([
       'Canonical builder for outbound messages. Fields:',
+      '- `receiver` — destination address (**required**);',
+      '- `body` — typed `@message` struct literal (**required**);',
       '- `bounce` — `BounceMode.NoBounce` or `BounceMode.Only256BitsOfBody`;',
       '- `amount` — attached coins;',
-      '- `receiver` — destination address;',
-      '- `body` — typed `@message` struct literal.',
+      '- `mode` — send mode, a `+`-combination of `SEND_*` constants;',
+      '- `textComment` — a single human-readable memo;',
+      '- `opcode`, `queryId`, `stateInit` — advanced overrides.',
       '',
       'Send the result with `.send(SEND_...)`.'
     ]);
     build.sortText = '0buildMessage';
     items.push(build);
+
+    // buildMessage field keys — offered so `mode:` / `textComment:` and the
+    // rest complete inside a `buildMessage({ ... })` literal. The static
+    // diagnostics reject any key outside this exact set.
+    for (const field of BUILD_MESSAGE_FIELDS) {
+      const item = new vscode.CompletionItem(field, vscode.CompletionItemKind.Field);
+      item.detail = 'buildMessage field';
+      item.documentation = md(BUILD_MESSAGE_FIELD_DOCS[field] || '');
+      item.insertText = new vscode.SnippetString(field + ': ${0}');
+      item.sortText = '2' + field;
+      items.push(item);
+    }
+
+    // Map<K,V> dictionary methods, offered after a receiver. `.set` / `.delete`
+    // mutate and are rejected inside `@get` / `@pure` (see diagnostics).
+    for (const [method, doc] of Object.entries(MAP_METHODS)) {
+      const item = new vscode.CompletionItem(method, vscode.CompletionItemKind.Method);
+      item.detail = 'Map method';
+      item.documentation = md(['**Map.' + method + '** — dictionary method.', '', doc]);
+      const takesArgs = method === 'get' || method === 'set' || method === 'has' || method === 'delete';
+      item.insertText = new vscode.SnippetString(method + (takesArgs ? '($0)' : '()'));
+      item.sortText = '3' + method;
+      items.push(item);
+    }
 
     const sendCall = new vscode.CompletionItem('send', vscode.CompletionItemKind.Snippet);
     sendCall.insertText = new vscode.SnippetString(
@@ -112,6 +139,11 @@ const completionProvider = {
       item.detail = 'type';
       items.push(item);
     }
+    const mapType = new vscode.CompletionItem('Map', vscode.CompletionItemKind.TypeParameter);
+    mapType.detail = 'Map<K, V> — dictionary type';
+    mapType.documentation = md('Canonical dictionary type. Methods: `.get`, `.set`, `.has`, `.delete`, `.keys`, `.entries`, `.values`, `.empty`. `.set`/`.delete` mutate and are rejected in `@get`/`@pure`.');
+    mapType.insertText = new vscode.SnippetString('Map<${1:uint64}, ${2:uint64}>');
+    items.push(mapType);
 
     // Live symbols: this file's own + every other known/workspace-scanned
     // .atlx file, so an imported name (e.g. from token_shared.atlx) shows up

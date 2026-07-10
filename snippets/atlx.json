@@ -74,7 +74,7 @@
   "External handler": {
     "prefix": "onexternal",
     "body": [
-      "@external(inMsg: Segment)",
+      "@external",
       "func onExternalMessage(inMsg: Segment) {",
       "    const msg = lazy ${1:ExternalMsg}.fromSegment(inMsg)",
       "",
@@ -134,5 +134,33 @@
       "${1:out}.send(${6:SEND_BOUNCE_ON_FAIL})"
     ],
     "description": "Outbound message construction and send"
+  },
+  "Build message with mode and comment": {
+    "prefix": "buildmessagemode",
+    "body": [
+      "const ${1:out} = buildMessage({",
+      "    bounce: BounceMode.${2:NoBounce},",
+      "    amount: ${3:0},",
+      "    receiver: ${4:dest},",
+      "    mode: ${5|SEND_DEFAULT,SEND_FEE_FROM_BALANCE,SEND_CARRY_REMAINDER,SEND_DRAIN_BALANCE,SEND_ESTIMATE_ONLY|},",
+      "    textComment: \"${6:memo}\",",
+      "    body: ${7:Ping} {",
+      "        $0",
+      "    }",
+      "})",
+      "",
+      "${1:out}.send(SEND_BOUNCE_ON_FAIL)"
+    ],
+    "description": "Outbound message with an explicit send mode and text comment"
+  },
+  "Map field": {
+    "prefix": "map",
+    "body": "${1:balances}: Map<${2:address}, ${3:coins}>",
+    "description": "Map<K, V> dictionary field"
+  },
+  "Map get or default": {
+    "prefix": "mapget",
+    "body": "const ${1:value} = ${2:st}.${3:balances}.get(${4:key})",
+    "description": "Read a value from a Map"
   }
 }

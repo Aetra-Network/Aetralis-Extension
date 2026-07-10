@@ -10,6 +10,8 @@
     { "include": "#for-in" },
     { "include": "#control" },
     { "include": "#builtin-namespaces" },
+    { "include": "#send-modes" },
+    { "include": "#map-methods" },
     { "include": "#func-reserved-decl" },
     { "include": "#reserved-handlers" },
     { "include": "#func-method-decl" },
@@ -76,8 +78,16 @@
       "match": "@(?:internal|external|bounced|get|pure|impure|storage|message|store)\\b"
     },
     "contract-meta": {
-      "match": "\\b(author|description|version|storage|incomingMessages|incomingExternal)(?=\\s*:)",
+      "match": "\\b(author|description|version|storage|incomingMessages|incomingExternal|bounce|opcode|queryId|stateInit|mode|textComment)(?=\\s*:)",
       "name": "keyword.other.contract-meta.atlx"
+    },
+    "send-modes": {
+      "name": "constant.language.send-mode.atlx",
+      "match": "\\b(?:SEND_DEFAULT|SEND_FEE_FROM_BALANCE|SEND_IGNORE_ERRORS|SEND_BOUNCE_ON_FAIL|SEND_DESTROY_IF_EMPTY|SEND_CARRY_REMAINDER|SEND_DRAIN_BALANCE|SEND_ESTIMATE_ONLY)\\b"
+    },
+    "map-methods": {
+      "name": "support.function.builtin.atlx",
+      "match": "(?<=\\.)(?:get|set|has|delete|keys|entries|values|empty)(?=\\s*\\()"
     },
     "for-in": {
       "match": "\\b(for)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s+(in)\\b",
