@@ -213,6 +213,10 @@ function computeDiagnostics(document) {
     const name = m[1];
     if (CONTROL_KEYWORDS_BEFORE_PAREN.has(name)) continue;
     if (BUILTIN_FUNCTIONS.has(name)) continue;
+    // Already reported by Rule 4 with a more specific message (e.g. "slice"
+    // renamed to "subBytes") — don't also report it here as a generic unknown
+    // function, which would be redundant and less actionable.
+    if (BANNED_WORDS[name]) continue;
     if (index.enumVariants.has(name)) continue; // enum variant constructor, e.g. Deposit(amount: uint64)
     // Receiver-style call (Type.method(...) or value.method(...)) — not
     // validated here; method existence checking would need real types.

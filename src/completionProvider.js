@@ -179,7 +179,10 @@ const completionProvider = {
     }
 
     if (!cachedStaticItems) cachedStaticItems = buildStaticItems();
-    const items = cachedStaticItems.slice();
+    // Static items are filtered here too (not left to a trailing .filter over
+    // the combined list) so the cost of the prefix check is paid once, up
+    // front, the same way it now is for the live-symbol loops below.
+    const items = prefix ? cachedStaticItems.filter((item) => matchesPrefix(item.label)) : cachedStaticItems.slice();
 
     // Live symbols: this file's own + every other known/workspace-scanned
     // .atlx file, so an imported name (e.g. from token_shared.atlx) shows up
@@ -188,49 +191,65 @@ const completionProvider = {
     // or local `var` binding you wrote earlier in the file (or in another
     // open/workspace file) is offered back to you as you start typing it
     // again, and Tab or a click on the suggestion completes it.
+    //
+    // The prefix check runs FIRST in every loop below, before constructing a
+    // CompletionItem or rendering any hover markdown. A workspace with many
+    // .atlx files (e.g. the finance stdlib alone contributes ~90 functions)
+    // can easily hold several hundred indexed symbols; VS Code re-invokes
+    // provideCompletionItems on every keystroke while typing an identifier,
+    // so building-then-discarding markdown for every symbol that doesn't
+    // match what's actually been typed is wasted work on every keystroke,
+    // not just a one-time cost.
     const index = mergedIndex(document.uri.toString());
     for (const [name, entry] of index.structs) {
+      if (!matchesPrefix(name)) continue;
       const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Struct);
       item.detail = 'struct ' + name;
       item.documentation = md(renderStructHover(entry));
       items.push(item);
     }
     for (const [name, entry] of index.enums) {
+      if (!matchesPrefix(name)) continue;
       const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Enum);
       item.detail = 'enum ' + name;
       item.documentation = md(renderEnumHover(entry));
       items.push(item);
     }
     for (const [name, entry] of index.types) {
+      if (!matchesPrefix(name)) continue;
       const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Interface);
       item.detail = 'type ' + name;
       item.documentation = md('= `' + entry.value + '`');
       items.push(item);
     }
     for (const [name, entry] of index.functions) {
+      if (!matchesPrefix(name)) continue;
       const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Function);
       item.detail = (entry.receiver ? entry.receiver + '.' : '') + name + '(' + entry.params + ')';
       item.documentation = md(renderFunctionHover(entry));
       items.push(item);
     }
     for (const [name, entry] of index.consts) {
+      if (!matchesPrefix(name)) continue;
       const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Constant);
       item.detail = 'const ' + name;
       item.documentation = md('= `' + entry.value + '`');
       items.push(item);
     }
     for (const [name, entry] of index.variables) {
+      if (!matchesPrefix(name)) continue;
       const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Variable);
       item.detail = 'var ' + name;
       item.documentation = md('= `' + entry.value + '`');
       items.push(item);
     }
     for (const [name, entry] of index.contracts) {
+      if (!matchesPrefix(name)) continue;
       const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Class);
       item.detail = 'contract ' + name;
       items.push(item);
     }
-    return items.filter((item) => matchesPrefix(item.label));
+    return items;
   }
 };
 

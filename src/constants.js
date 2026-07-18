@@ -218,14 +218,20 @@ const WORD_DOCS = {
   toBytesBE: 'Big-endian, zero-padded encoding at a fixed output width. Traps if the value does not fit in `n` bytes or `n` exceeds the max bytes length. Signature: toBytesBE(value: uint256, n: uint256): bytes.',
   fromBytesBE: 'Big-endian decode into the widest lossless integer. Traps if the input is more than 32 bytes. Signature: fromBytesBE(data: bytes): uint256.',
 
-  slice: 'Extracts a byte window: slice(data, start, len). O(len) -- traps if the window runs past the end of `data`, mirroring `byteAt`/`concat`\'s deterministic-trap-not-panic rule. Signature: slice(data: bytes, start: uint256, len: uint256): bytes.',
+  subBytes: 'Extracts a byte window: subBytes(data, start, len). O(len) -- traps if the window runs past the end of `data`, mirroring `byteAt`/`concat`\'s deterministic-trap-not-panic rule. Renamed from `slice` -- `slice` is no longer part of the language (see the `cell`/`isSlice`-style entries in the legacy-word warnings). Signature: subBytes(data: bytes, start: uint256, len: uint256): bytes.',
 
   mulDiv: 'Full-width fused multiply-divide: floor(a*b/c). The a*b product is formed at unbounded width so it never overflows -- only the final quotient is range-checked to uint256 (traps if it does not fit, or if c == 0). Signature: mulDiv(a: uint256, b: uint256, c: uint256): uint256.',
+  mulDivFloor: 'Alias of `mulDiv` -- floor(a*b/c). Accepted spelling when the rounding direction should be explicit in the call site; lowers to the exact same opcode as `mulDiv`, not a distinct one. Signature: mulDivFloor(a: uint256, b: uint256, c: uint256): uint256.',
   mulDivRoundUp: 'Full-width fused multiply-divide, rounded up: ceil(a*b/c). Same unbounded-width product as `mulDiv`, only the final quotient is range-checked to uint256 (traps if it does not fit, or if c == 0). Signature: mulDivRoundUp(a: uint256, b: uint256, c: uint256): uint256.',
+  mulDivCeil: 'Alias of `mulDivRoundUp` -- ceil(a*b/c). Accepted spelling when the rounding direction should be explicit in the call site; lowers to the exact same opcode as `mulDivRoundUp`, not a distinct one. Signature: mulDivCeil(a: uint256, b: uint256, c: uint256): uint256.',
   mulDivNearest: 'Full-width fused multiply-divide, rounded half-up: floor(a*b/c), incremented by one iff the true remainder doubled is >= c (the exact quotient\'s fractional part is >= 1/2). Same unbounded-width product as `mulDiv`/`mulDivRoundUp`, least-biased of the three for fee/price math. Traps if the quotient does not fit uint256, or if c == 0. Signature: mulDivNearest(a: uint256, b: uint256, c: uint256): uint256.',
   mulCmp: 'Full-range cross-product comparison: sign(a*b - c*d) as -1/0/+1. Both products are formed at unbounded width, so it never traps on a >uint256 product -- the full-range replacement for a bounded ratio-compare. Operands are unsigned. Signature: mulCmp(a: uint256, b: uint256, c: uint256, d: uint256): int256.',
   mulDivSigned: '(a*b)/c truncated toward zero, over signed int256 operands. The a*b product is formed at unbounded width, only the final quotient is range-checked to int256 (traps if it does not fit, or if c == 0). Signature: mulDivSigned(a: int256, b: int256, c: int256): int256.',
   isqrt: 'Integer square root: floor(sqrt(x)). Traps if the operand is negative. Signature: isqrt(x: uint256): uint256.',
+
+  toUint128: 'Checked narrowing cast: re-tags a uint256-family arithmetic result (e.g. from `mulDiv`/`mulDivNearest`, which always return uint256) as `uint128`. Traps if the value does not fit in 128 bits -- never silently truncates. Signature: toUint128(x: uint256): uint128.',
+  toInt128: 'Checked narrowing cast: re-tags an int256-family arithmetic result as `int128`. Traps if the value does not fit in 128 bits (either direction) -- never silently truncates. Signature: toInt128(x: int256): int128.',
+  toInt256: 'Checked re-tagging cast from an unsigned uint256 magnitude (e.g. a `Ratio256`/`BasisPoints`-derived value) into signed `int256`. Traps if the magnitude does not fit (>= 2^255) -- never silently wraps into a negative value. Signature: toInt256(x: uint256): int256.',
 
   verifySecp256k1: 'Verifies a 64-byte compact R‖S secp256k1 signature over a 32-byte message hash against a public key. Malformed input soft-fails to `false` rather than trapping, mirroring Ethereum\'s ecrecover. Signature: verifySecp256k1(msgHash: hash32, sig: bytes, pubkey: bytes): bool.',
   ecrecover: 'Recovers the signer\'s 64-byte X‖Y public key from a 65-byte recoverable secp256k1 signature over a message hash. Malformed input soft-fails to empty bytes rather than trapping, matching Ethereum\'s ecrecover. Signature: ecrecover(msgHash: hash32, sig: bytes): bytes.'
@@ -250,20 +256,23 @@ const BUILTIN_FUNCTIONS = new Set([
   // Byte-exact hashes, byte manipulation, full-width math, and signatures
   // (x/aetravm/compiler/compile.go, x/aetravm/avm/avm.go).
   'sha256', 'keccak256', 'ripemd160', 'sha512', 'blake2b',
-  'concat', 'slice', 'byteAt', 'toBytesBE', 'fromBytesBE',
-  'mulDiv', 'mulDivRoundUp', 'mulDivNearest', 'mulCmp', 'mulDivSigned', 'isqrt',
+  'concat', 'subBytes', 'byteAt', 'toBytesBE', 'fromBytesBE',
+  'mulDiv', 'mulDivFloor', 'mulDivRoundUp', 'mulDivCeil', 'mulDivNearest',
+  'mulCmp', 'mulDivSigned', 'isqrt',
+  'toUint128', 'toInt128', 'toInt256',
   'verifySecp256k1', 'ecrecover'
 ]);
 
 // Words that are not part of the language: legacy/removed forms. Extension-
 // side mirror of what the compiler now rejects (parser.go reservedBindingNames,
 // lexer identifier rules, and the removal of package/migrate/selector).
-// NOTE: `slice` is deliberately NOT here — it collided with the byte-window
-// builtin `slice(data, start, len)` (compile.go, Phase A), which is real
-// language surface; the legacy TON "Slice" cell concept it used to warn
-// about is covered by the `cell` entry below instead.
+// `slice` used to be real language surface (the byte-window builtin) and was
+// deliberately excluded from this list for that reason — the compiler has
+// since renamed that builtin to `subBytes`, so `slice` is now itself a
+// legacy/removed name and belongs here like any other.
 const BANNED_WORDS = {
   cell: 'not part of the language — use `Chunk`.',
+  slice: 'not part of the language — the byte-window builtin was renamed to `subBytes(data, start, len)`.',
   isSlice: 'not part of the language.',
   isSliceSignatureValid: 'not part of the language — use `isSignatureValid`/`isSegmentSignatureValid`.',
   package: 'not part of the language — the only top-level unit form is `import`.',
