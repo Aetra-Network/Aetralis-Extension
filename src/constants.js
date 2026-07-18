@@ -201,7 +201,31 @@ const WORD_DOCS = {
   Segment: 'Bounded read view over a chunk; the inbound body-reading form, e.g. `Msg.fromSegment(inMsg)`.',
   Chunk: 'Canonical chunk-backed data unit; `Chunk<T>?` stores a typed out-of-line payload. Hover the `T` to see its fields.',
   Code: 'Canonical contract bytecode value. Build with `Code.fromChunk/fromHex/fromBase64`, hash with `.hash()`.',
-  BounceMode: 'Bounce policy for `buildMessage`: `BounceMode.NoBounce`, `BounceMode.Only256BitsOfBody`.'
+  BounceMode: 'Bounce policy for `buildMessage`: `BounceMode.NoBounce`, `BounceMode.Only256BitsOfBody`.',
+
+  // Byte-exact hashes (distinct from the chunk-tree hash()) — one argument,
+  // no receiver. sha256/keccak256/blake2b produce a 32-byte digest tagged as
+  // `hash32`; ripemd160/sha512 have non-32-byte digests (20 / 64 bytes) so
+  // they are returned as plain `bytes`.
+  sha256: 'Byte-exact SHA-256 digest over raw bytes (distinct from the chunk-tree `hash()`). Signature: sha256(data: bytes): hash32.',
+  keccak256: 'Byte-exact Keccak-256 digest over raw bytes (distinct from the chunk-tree `hash()`). Signature: keccak256(data: bytes): hash32.',
+  ripemd160: 'Byte-exact RIPEMD-160 digest over raw bytes. Returned as `bytes` (20 bytes) since there is no 20-byte hash tag. Signature: ripemd160(data: bytes): bytes.',
+  sha512: 'Byte-exact SHA-512 digest over raw bytes. Returned as `bytes` (64 bytes) since there is no 64-byte hash tag. Signature: sha512(data: bytes): bytes.',
+  blake2b: 'Byte-exact BLAKE2b-256 digest over raw bytes (distinct from the chunk-tree `hash()`). Signature: blake2b(data: bytes): hash32.',
+
+  concat: 'Concatenates two byte strings. Traps if the result would exceed the max bytes length. Signature: concat(a: bytes, b: bytes): bytes.',
+  byteAt: 'Reads a single byte at an index. O(1) — traps if the index is out of range. Signature: byteAt(data: bytes, index: uint256): uint8.',
+  toBytesBE: 'Big-endian, zero-padded encoding at a fixed output width. Traps if the value does not fit in `n` bytes or `n` exceeds the max bytes length. Signature: toBytesBE(value: uint256, n: uint256): bytes.',
+  fromBytesBE: 'Big-endian decode into the widest lossless integer. Traps if the input is more than 32 bytes. Signature: fromBytesBE(data: bytes): uint256.',
+
+  mulDiv: 'Full-width fused multiply-divide: floor(a*b/c). The a*b product is formed at unbounded width so it never overflows -- only the final quotient is range-checked to uint256 (traps if it does not fit, or if c == 0). Signature: mulDiv(a: uint256, b: uint256, c: uint256): uint256.',
+  mulDivRoundUp: 'Full-width fused multiply-divide, rounded up: ceil(a*b/c). Same unbounded-width product as `mulDiv`, only the final quotient is range-checked to uint256 (traps if it does not fit, or if c == 0). Signature: mulDivRoundUp(a: uint256, b: uint256, c: uint256): uint256.',
+  mulCmp: 'Full-range cross-product comparison: sign(a*b - c*d) as -1/0/+1. Both products are formed at unbounded width, so it never traps on a >uint256 product -- the full-range replacement for a bounded ratio-compare. Operands are unsigned. Signature: mulCmp(a: uint256, b: uint256, c: uint256, d: uint256): int256.',
+  mulDivSigned: '(a*b)/c truncated toward zero, over signed int256 operands. The a*b product is formed at unbounded width, only the final quotient is range-checked to int256 (traps if it does not fit, or if c == 0). Signature: mulDivSigned(a: int256, b: int256, c: int256): int256.',
+  isqrt: 'Integer square root: floor(sqrt(x)). Traps if the operand is negative. Signature: isqrt(x: uint256): uint256.',
+
+  verifySecp256k1: 'Verifies a 64-byte compact R‖S secp256k1 signature over a 32-byte message hash against a public key. Malformed input soft-fails to `false` rather than trapping, mirroring Ethereum\'s ecrecover. Signature: verifySecp256k1(msgHash: hash32, sig: bytes, pubkey: bytes): bool.',
+  ecrecover: 'Recovers the signer\'s 64-byte X‖Y public key from a 65-byte recoverable secp256k1 signature over a message hash. Malformed input soft-fails to empty bytes rather than trapping, matching Ethereum\'s ecrecover. Signature: ecrecover(msgHash: hash32, sig: bytes): bytes.'
 };
 
 // Core language words offered in completion beyond the documented WORD_DOCS
@@ -219,7 +243,13 @@ const BUILTIN_FUNCTIONS = new Set([
   'buildMessage', 'counterfactualAddress', 'autoDeployAddress', 'getAddress',
   'getOriginalBalance', 'getAttachedValue', 'getBalance', 'now', 'logicalTime',
   'currentBlockLogicalTime', 'aet', 'address', 'hash', 'isSignatureValid',
-  'isSegmentSignatureValid', 'len', 'setCodePostponed', 'random'
+  'isSegmentSignatureValid', 'len', 'setCodePostponed', 'random',
+  // Byte-exact hashes, byte manipulation, full-width math, and signatures
+  // (x/aetravm/compiler/compile.go, x/aetravm/avm/avm.go).
+  'sha256', 'keccak256', 'ripemd160', 'sha512', 'blake2b',
+  'concat', 'byteAt', 'toBytesBE', 'fromBytesBE',
+  'mulDiv', 'mulDivRoundUp', 'mulCmp', 'mulDivSigned', 'isqrt',
+  'verifySecp256k1', 'ecrecover'
 ]);
 
 // Words that are not part of the language: legacy/removed forms. Extension-

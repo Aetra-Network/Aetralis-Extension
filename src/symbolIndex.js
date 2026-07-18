@@ -196,18 +196,31 @@ function mergedIndex(preferUri) {
   return merged;
 }
 
+// Bounded-concurrency worker pool for reading/indexing files. Sequential
+// awaited reads serialize I/O that the OS/fs layer can service concurrently;
+// a small pool lets up to CONCURRENCY files be in flight at once while still
+// processing results one at a time (no unbounded Promise.all over 500 files).
+const SEED_CONCURRENCY = 8;
+
 async function seedWorkspaceIndex() {
   const vscode = require('vscode');
   try {
     const files = await vscode.workspace.findFiles('**/*.atlx', '**/node_modules/**', 500);
-    for (const uri of files) {
-      if (docIndexCache.has(uri.toString())) continue;
-      try {
-        const bytes = await vscode.workspace.fs.readFile(uri);
-        const text = maskNonCode(Buffer.from(bytes).toString('utf8'));
-        docIndexCache.set(uri.toString(), indexSource(text, uri));
-      } catch (_e) { /* unreadable file, skip */ }
-    }
+    let next = 0;
+    const worker = async () => {
+      while (next < files.length) {
+        const uri = files[next++];
+        if (docIndexCache.has(uri.toString())) continue;
+        try {
+          const bytes = await vscode.workspace.fs.readFile(uri);
+          const text = maskNonCode(Buffer.from(bytes).toString('utf8'));
+          docIndexCache.set(uri.toString(), indexSource(text, uri));
+        } catch (_e) { /* unreadable file, skip */ }
+      }
+    };
+    const workers = [];
+    for (let i = 0; i < Math.min(SEED_CONCURRENCY, files.length); i++) workers.push(worker());
+    await Promise.all(workers);
   } catch (_e) { /* workspace scan unavailable, extension still works per-open-document */ }
 }
 
