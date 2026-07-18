@@ -218,8 +218,11 @@ const WORD_DOCS = {
   toBytesBE: 'Big-endian, zero-padded encoding at a fixed output width. Traps if the value does not fit in `n` bytes or `n` exceeds the max bytes length. Signature: toBytesBE(value: uint256, n: uint256): bytes.',
   fromBytesBE: 'Big-endian decode into the widest lossless integer. Traps if the input is more than 32 bytes. Signature: fromBytesBE(data: bytes): uint256.',
 
+  slice: 'Extracts a byte window: slice(data, start, len). O(len) -- traps if the window runs past the end of `data`, mirroring `byteAt`/`concat`\'s deterministic-trap-not-panic rule. Signature: slice(data: bytes, start: uint256, len: uint256): bytes.',
+
   mulDiv: 'Full-width fused multiply-divide: floor(a*b/c). The a*b product is formed at unbounded width so it never overflows -- only the final quotient is range-checked to uint256 (traps if it does not fit, or if c == 0). Signature: mulDiv(a: uint256, b: uint256, c: uint256): uint256.',
   mulDivRoundUp: 'Full-width fused multiply-divide, rounded up: ceil(a*b/c). Same unbounded-width product as `mulDiv`, only the final quotient is range-checked to uint256 (traps if it does not fit, or if c == 0). Signature: mulDivRoundUp(a: uint256, b: uint256, c: uint256): uint256.',
+  mulDivNearest: 'Full-width fused multiply-divide, rounded half-up: floor(a*b/c), incremented by one iff the true remainder doubled is >= c (the exact quotient\'s fractional part is >= 1/2). Same unbounded-width product as `mulDiv`/`mulDivRoundUp`, least-biased of the three for fee/price math. Traps if the quotient does not fit uint256, or if c == 0. Signature: mulDivNearest(a: uint256, b: uint256, c: uint256): uint256.',
   mulCmp: 'Full-range cross-product comparison: sign(a*b - c*d) as -1/0/+1. Both products are formed at unbounded width, so it never traps on a >uint256 product -- the full-range replacement for a bounded ratio-compare. Operands are unsigned. Signature: mulCmp(a: uint256, b: uint256, c: uint256, d: uint256): int256.',
   mulDivSigned: '(a*b)/c truncated toward zero, over signed int256 operands. The a*b product is formed at unbounded width, only the final quotient is range-checked to int256 (traps if it does not fit, or if c == 0). Signature: mulDivSigned(a: int256, b: int256, c: int256): int256.',
   isqrt: 'Integer square root: floor(sqrt(x)). Traps if the operand is negative. Signature: isqrt(x: uint256): uint256.',
@@ -247,16 +250,19 @@ const BUILTIN_FUNCTIONS = new Set([
   // Byte-exact hashes, byte manipulation, full-width math, and signatures
   // (x/aetravm/compiler/compile.go, x/aetravm/avm/avm.go).
   'sha256', 'keccak256', 'ripemd160', 'sha512', 'blake2b',
-  'concat', 'byteAt', 'toBytesBE', 'fromBytesBE',
-  'mulDiv', 'mulDivRoundUp', 'mulCmp', 'mulDivSigned', 'isqrt',
+  'concat', 'slice', 'byteAt', 'toBytesBE', 'fromBytesBE',
+  'mulDiv', 'mulDivRoundUp', 'mulDivNearest', 'mulCmp', 'mulDivSigned', 'isqrt',
   'verifySecp256k1', 'ecrecover'
 ]);
 
 // Words that are not part of the language: legacy/removed forms. Extension-
 // side mirror of what the compiler now rejects (parser.go reservedBindingNames,
 // lexer identifier rules, and the removal of package/migrate/selector).
+// NOTE: `slice` is deliberately NOT here — it collided with the byte-window
+// builtin `slice(data, start, len)` (compile.go, Phase A), which is real
+// language surface; the legacy TON "Slice" cell concept it used to warn
+// about is covered by the `cell` entry below instead.
 const BANNED_WORDS = {
-  slice: 'not part of the language — use `Segment` for inbound reading.',
   cell: 'not part of the language — use `Chunk`.',
   isSlice: 'not part of the language.',
   isSliceSignatureValid: 'not part of the language — use `isSignatureValid`/`isSegmentSignatureValid`.',

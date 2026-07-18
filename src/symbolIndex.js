@@ -168,13 +168,43 @@ function indexSource(text, uri) {
 // Per-document cache, keyed by uri string. Merged lazily on lookup.
 const docIndexCache = new Map();
 
+// mergedIndex used to rebuild a fresh set of Maps by walking every cached
+// document on EVERY call — and it is called on every hover and every
+// completion request (completionProvider.js, hoverProvider.js,
+// definitionProvider.js), not just on the 300ms-debounced diagnostics pass.
+// While typing, VS Code re-invokes provideCompletionItems on close to every
+// keystroke, so a workspace with many .atlx files was being fully re-merged
+// far more often than its contents actually changed. Cache the result and
+// only rebuild when a document's index actually changed (updateIndexFor /
+// seedWorkspaceIndex / removeIndexFor all call invalidateMerged()) or the
+// preferred (current) document differs from the last call.
+let mergedCache = null;
+let mergedCacheKey = undefined; // preferUri the cache was built for
+let mergedDirty = true;
+
+function invalidateMerged() {
+  mergedDirty = true;
+}
+
 function updateIndexFor(document) {
   if (document.languageId !== 'atlx') return;
   const text = maskNonCode(document.getText());
   docIndexCache.set(document.uri.toString(), indexSource(text, document.uri));
+  invalidateMerged();
+}
+
+// Drops a document's index entirely. Only meant for documents that can never
+// reappear via seedWorkspaceIndex's workspace scan (e.g. untitled/scratch
+// buffers) — real on-disk files stay cached after close on purpose, since
+// cross-file resolution (an imported struct/const from a file you aren't
+// currently editing) depends on their entry surviving the close.
+function removeIndexFor(uriString) {
+  if (docIndexCache.delete(uriString)) invalidateMerged();
 }
 
 function mergedIndex(preferUri) {
+  if (!mergedDirty && mergedCacheKey === preferUri && mergedCache) return mergedCache;
+
   const merged = {
     structs: new Map(), enums: new Map(), types: new Map(), functions: new Map(),
     methods: new Map(), consts: new Map(), variables: new Map(), contracts: new Map(),
@@ -193,6 +223,10 @@ function mergedIndex(preferUri) {
     }
     for (const v of idx.enumVariants) merged.enumVariants.add(v);
   }
+
+  mergedCache = merged;
+  mergedCacheKey = preferUri;
+  mergedDirty = false;
   return merged;
 }
 
@@ -201,20 +235,49 @@ function mergedIndex(preferUri) {
 // a small pool lets up to CONCURRENCY files be in flight at once while still
 // processing results one at a time (no unbounded Promise.all over 500 files).
 const SEED_CONCURRENCY = 8;
+// Neither vscode.workspace.findFiles nor fs.readFile carries its own timeout —
+// on a slow/unresponsive filesystem (network share, degraded disk) either can
+// simply never resolve. A worker `await`ing a hung readFile would stall
+// forever, permanently shrinking the pool by one; enough hung files would
+// stall seeding entirely (silently, since nothing else awaits this promise).
+// Racing each call against a timeout turns a hang into a skipped file instead.
+const FIND_FILES_TIMEOUT_MS = 10000;
+const READ_FILE_TIMEOUT_MS = 5000;
+
+function withTimeout(promise, ms, fallback) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      resolve(fallback);
+    }, ms);
+    promise.then(
+      (value) => { if (!settled) { settled = true; clearTimeout(timer); resolve(value); } },
+      () => { if (!settled) { settled = true; clearTimeout(timer); resolve(fallback); } }
+    );
+  });
+}
 
 async function seedWorkspaceIndex() {
   const vscode = require('vscode');
   try {
-    const files = await vscode.workspace.findFiles('**/*.atlx', '**/node_modules/**', 500);
+    const files = await withTimeout(
+      vscode.workspace.findFiles('**/*.atlx', '**/node_modules/**', 500),
+      FIND_FILES_TIMEOUT_MS,
+      []
+    );
     let next = 0;
     const worker = async () => {
       while (next < files.length) {
         const uri = files[next++];
         if (docIndexCache.has(uri.toString())) continue;
         try {
-          const bytes = await vscode.workspace.fs.readFile(uri);
+          const bytes = await withTimeout(vscode.workspace.fs.readFile(uri), READ_FILE_TIMEOUT_MS, null);
+          if (bytes === null) continue; // unreadable or timed out — skip, don't stall the pool
           const text = maskNonCode(Buffer.from(bytes).toString('utf8'));
           docIndexCache.set(uri.toString(), indexSource(text, uri));
+          invalidateMerged();
         } catch (_e) { /* unreadable file, skip */ }
       }
     };
@@ -232,6 +295,7 @@ module.exports = {
   indexSource,
   docIndexCache,
   updateIndexFor,
+  removeIndexFor,
   mergedIndex,
   seedWorkspaceIndex
 };

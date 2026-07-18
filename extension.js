@@ -4,7 +4,7 @@ const { hoverProvider } = require('./src/hoverProvider');
 const { definitionProvider } = require('./src/definitionProvider');
 const { completionProvider } = require('./src/completionProvider');
 const { computeDiagnostics } = require('./src/diagnostics');
-const { maskNonCode, indexSource, mergedIndex, docIndexCache, updateIndexFor, seedWorkspaceIndex } = require('./src/symbolIndex');
+const { maskNonCode, indexSource, mergedIndex, docIndexCache, updateIndexFor, removeIndexFor, seedWorkspaceIndex } = require('./src/symbolIndex');
 const { registerUnicodeSubstitution } = require('./src/unicodeSubstitution');
 const { registerShimmerDecorations } = require('./src/shimmerDecorations');
 
@@ -42,7 +42,16 @@ function activate(context) {
   context.subscriptions.push(
     vscode.workspace.onDidOpenTextDocument(refresh),
     vscode.workspace.onDidChangeTextDocument((e) => refreshDebounced(e.document)),
-    vscode.workspace.onDidCloseTextDocument((d) => collection.delete(d.uri))
+    vscode.workspace.onDidCloseTextDocument((d) => {
+      collection.delete(d.uri);
+      // Real on-disk files stay in docIndexCache after close (seedWorkspaceIndex
+      // relies on that for cross-file resolution). Untitled/scratch buffers
+      // can never be re-populated by the workspace scan and have no value
+      // once closed, so drop them — otherwise a long session that opens and
+      // discards many scratch buffers grows the index (and mergedIndex's
+      // per-call work) without bound.
+      if (d.uri.scheme !== 'file') removeIndexFor(d.uri.toString());
+    })
   );
   for (const document of vscode.workspace.textDocuments) refresh(document);
 
