@@ -2,6 +2,8 @@
 **/*.vsix
 node_modules/**
 assets/aetralis.png
+assets/example1.png
+assets/example2.png
 README.md
 test/**
 scripts/**

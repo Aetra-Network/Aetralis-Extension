@@ -14,32 +14,47 @@
 // Node process — src/shimmerMatcher.js and its unit tests depend on that.
 // ---------------------------------------------------------------------------
 
+// Reconstructing a large char-code buffer via String.fromCharCode.apply in
+// one call risks an engine-dependent argument-count ceiling; chunking avoids
+// ever approaching it regardless of file size.
+const MASK_RECONSTRUCT_CHUNK = 8192;
+
 /** Masks strings and comments with spaces, preserving offsets. */
 function maskNonCode(text) {
-  const out = text.split('');
-  let i = 0;
   const n = text.length;
+  // A Uint16Array of char codes avoids `text.split('')`'s per-character
+  // boxed-string allocation (one object per char) -- same algorithm, same
+  // output, just a cheaper intermediate representation for a function that
+  // runs on every debounced keystroke.
+  const codes = new Uint16Array(n);
+  for (let k = 0; k < n; k++) codes[k] = text.charCodeAt(k);
+  const SPACE = 32;
+  let i = 0;
   let mode = 'code';
   while (i < n) {
     const c = text[i];
     if (mode === 'code') {
-      if (c === '"') { mode = 'str'; out[i] = ' '; }
-      else if (c === '/' && text[i + 1] === '/') { mode = 'line'; out[i] = ' '; }
-      else if (c === '/' && text[i + 1] === '*') { mode = 'block'; out[i] = ' '; }
+      if (c === '"') { mode = 'str'; codes[i] = SPACE; }
+      else if (c === '/' && text[i + 1] === '/') { mode = 'line'; codes[i] = SPACE; }
+      else if (c === '/' && text[i + 1] === '*') { mode = 'block'; codes[i] = SPACE; }
     } else if (mode === 'str') {
-      if (c === '\\') { out[i] = ' '; i++; if (i < n && text[i] !== '\n') out[i] = ' '; }
-      else if (c === '"') { out[i] = ' '; mode = 'code'; }
-      else if (c !== '\n') out[i] = ' ';
+      if (c === '\\') { codes[i] = SPACE; i++; if (i < n && text[i] !== '\n') codes[i] = SPACE; }
+      else if (c === '"') { codes[i] = SPACE; mode = 'code'; }
+      else if (c !== '\n') codes[i] = SPACE;
     } else if (mode === 'line') {
       if (c === '\n') mode = 'code';
-      else out[i] = ' ';
+      else codes[i] = SPACE;
     } else if (mode === 'block') {
-      if (c === '*' && text[i + 1] === '/') { out[i] = ' '; i++; out[i] = ' '; mode = 'code'; }
-      else if (c !== '\n') out[i] = ' ';
+      if (c === '*' && text[i + 1] === '/') { codes[i] = SPACE; i++; codes[i] = SPACE; mode = 'code'; }
+      else if (c !== '\n') codes[i] = SPACE;
     }
     i++;
   }
-  return out.join('');
+  let result = '';
+  for (let start = 0; start < n; start += MASK_RECONSTRUCT_CHUNK) {
+    result += String.fromCharCode.apply(null, codes.subarray(start, Math.min(start + MASK_RECONSTRUCT_CHUNK, n)));
+  }
+  return result;
 }
 
 function lineColOf(text, offset) {
@@ -186,9 +201,14 @@ function invalidateMerged() {
   mergedDirty = true;
 }
 
-function updateIndexFor(document) {
+// `maskedText`, if given, is the caller's already-computed `maskNonCode(
+// document.getText())` -- a caller (e.g. extension.js's refresh(), which also
+// calls computeDiagnostics on the same document) can pass it through to skip
+// re-masking the same text twice per edit. Falls back to computing it here
+// when omitted, so existing callers/tests are unaffected.
+function updateIndexFor(document, maskedText) {
   if (document.languageId !== 'atlx') return;
-  const text = maskNonCode(document.getText());
+  const text = maskedText !== undefined ? maskedText : maskNonCode(document.getText());
   docIndexCache.set(document.uri.toString(), indexSource(text, document.uri));
   invalidateMerged();
 }

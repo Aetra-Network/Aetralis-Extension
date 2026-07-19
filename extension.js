@@ -29,8 +29,12 @@ function activate(context) {
   const timers = new Map();
   const refresh = (document) => {
     if (document.languageId !== 'atlx') return;
-    updateIndexFor(document);
-    collection.set(document.uri, computeDiagnostics(document));
+    // Masked once and shared: updateIndexFor and computeDiagnostics both
+    // need `maskNonCode(document.getText())`, and re-masking the same text
+    // twice per edit was pure waste on any non-trivial file.
+    const maskedText = maskNonCode(document.getText());
+    updateIndexFor(document, maskedText);
+    collection.set(document.uri, computeDiagnostics(document, maskedText));
   };
   const refreshDebounced = (document) => {
     if (document.languageId !== 'atlx') return;

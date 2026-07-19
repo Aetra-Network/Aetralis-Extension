@@ -144,20 +144,25 @@ function paramName(seg) {
 // it — a missed error is far less costly than a false one on ordinary,
 // correct code (flagging every parameter at its own use site would make
 // this feature actively harmful, not helpful).
+// Hoisted to module scope (rebuilt fresh per-call would otherwise recompile
+// on every debounced keystroke): each loop below always runs to exhaustion
+// (exec returns null, which resets a global regex's lastIndex to 0), so a
+// shared instance across calls is safe — no state leaks between documents.
+const COLLECT_FUNC_SIG_RE = /\bfunc\s+[A-Za-z_][A-Za-z0-9_]*(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)?\s*\(([^)]*)\)/g;
+const COLLECT_FOR_RE = /\bfor\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\b/g;
+const COLLECT_ARM_RE = /\(([^()]*)\)\s*(?:=>|->)/g;
+
 function collectLocalNames(text) {
   const names = new Set();
-  const funcSigRe = /\bfunc\s+[A-Za-z_][A-Za-z0-9_]*(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)?\s*\(([^)]*)\)/g;
   let mm;
-  while ((mm = funcSigRe.exec(text)) !== null) {
+  while ((mm = COLLECT_FUNC_SIG_RE.exec(text)) !== null) {
     for (const seg of splitParamList(mm[1])) {
       const n = paramName(seg);
       if (n) names.add(n);
     }
   }
-  const forRe = /\bfor\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\b/g;
-  while ((mm = forRe.exec(text)) !== null) names.add(mm[1]);
-  const armRe = /\(([^()]*)\)\s*(?:=>|->)/g;
-  while ((mm = armRe.exec(text)) !== null) {
+  while ((mm = COLLECT_FOR_RE.exec(text)) !== null) names.add(mm[1]);
+  while ((mm = COLLECT_ARM_RE.exec(text)) !== null) {
     for (const seg of splitParamList(mm[1])) {
       const t = seg.trim();
       if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(t)) names.add(t);
@@ -222,8 +227,43 @@ function validateSendMode(raw, offset, push) {
   }
 }
 
-function computeDiagnostics(document) {
-  const text = maskNonCode(document.getText());
+// Hoisted module-scope regexes for computeDiagnostics's rules below — same
+// safety reasoning as COLLECT_*_RE above: every loop using these always runs
+// to natural exhaustion (or, for MUTATIONS/getRe, explicitly resets
+// lastIndex before each use), so nothing leaks across separate calls/
+// documents. BANNED_RE is built once from BANNED_WORDS' keys (a fixed
+// constant object), not re-joined into a fresh pattern string every call.
+const CONTRACT_RE = /\bcontract\s+[A-Za-z_]/g;
+const ANN_RE = /@(internal|external|bounced)\b/g;
+const RESERVED_RE = /\bfunc\s+(onInternalMessage|onExternalMessage|onBouncedMessage)\b/g;
+const BANNED_RE = new RegExp('\\b(' + Object.keys(BANNED_WORDS).join('|') + ')\\b', 'g');
+const BINDING_RE = /(^|[{};])\s*(let|val|mut)\s+[A-Za-z_][A-Za-z0-9_]*\s*=/gm;
+const CALL_RE = /\b([A-Za-z_][A-Za-z0-9_]*)\s*\(/g;
+const RETURN_RE = /\breturn(\s+)([A-Za-z_][A-Za-z0-9_]*)[ \t]*(?=[;\r\n}]|$)/g;
+const LEGACY_RE = /(^|[\n{};])([ \t]*)(message|getter|event|wallet)\b/g;
+const BAD_ANN_RE = /@([a-z]+)\s*\(/g;
+const BM_RE = /\bbuildMessage\s*\(/g;
+const SEND_RE = /\.\s*send\s*\(/g;
+const MUTATIONS = [
+  { re: /\bcontract\s*\.\s*setData\s*\(/g, name: 'setData()' },
+  { re: /\bcontract\s*\.\s*deleteData\s*\(/g, name: 'deleteData()' },
+  { re: /\.\s*save\s*\(\s*\)/g, name: 'save()' },
+  { re: /\.\s*touch\s*\(\s*\)/g, name: 'touch()' },
+  { re: /\.\s*set\s*\(/g, name: 'map set()' },
+  { re: /\.\s*delete\s*\(/g, name: 'map delete()' },
+  { re: /\.\s*send\s*\(/g, name: 'send()' },
+  { re: /\bemit\s*\(/g, name: 'emit()' },
+  { re: /\brefund\s*\(/g, name: 'refund()' }
+];
+const GET_RE = /@(get|pure)\b[\s\S]*?\bfunc\b[^{;]*\{/g;
+
+// `maskedText`, if given, is the caller's already-computed `maskNonCode(
+// document.getText())` -- lets a caller that also indexes the same document
+// (extension.js's refresh(), which calls updateIndexFor on the same text)
+// skip masking it twice per edit. Falls back to computing it here when
+// omitted, so existing callers/tests are unaffected.
+function computeDiagnostics(document, maskedText) {
+  const text = maskedText !== undefined ? maskedText : maskNonCode(document.getText());
   const diags = [];
   const push = (start, length, message, severity) => {
     const range = new vscode.Range(
@@ -235,9 +275,8 @@ function computeDiagnostics(document) {
 
   // Contract segment starts (for the "once per contract" rule).
   const contractStarts = [0];
-  const contractRe = /\bcontract\s+[A-Za-z_]/g;
   let m;
-  while ((m = contractRe.exec(text)) !== null) contractStarts.push(m.index);
+  while ((m = CONTRACT_RE.exec(text)) !== null) contractStarts.push(m.index);
   const segmentOf = (idx) => {
     let seg = 0;
     for (const s of contractStarts) { if (s <= idx) seg = s; else break; }
@@ -246,8 +285,7 @@ function computeDiagnostics(document) {
 
   // Rule 1 + 2: walk handler annotations.
   const seen = new Map(); // key: segment + kind
-  const annRe = /@(internal|external|bounced)\b/g;
-  while ((m = annRe.exec(text)) !== null) {
+  while ((m = ANN_RE.exec(text)) !== null) {
     const kind = m[1];
     const handler = HANDLERS[kind];
     const key = segmentOf(m.index) + ':' + kind;
@@ -273,8 +311,7 @@ function computeDiagnostics(document) {
   }
 
   // Rule 3: reserved names require the matching annotation.
-  const reservedRe = /\bfunc\s+(onInternalMessage|onExternalMessage|onBouncedMessage)\b/g;
-  while ((m = reservedRe.exec(text)) !== null) {
+  while ((m = RESERVED_RE.exec(text)) !== null) {
     const name = m[1];
     const kind = name === 'onInternalMessage' ? 'internal'
       : name === 'onExternalMessage' ? 'external' : 'bounced';
@@ -288,14 +325,12 @@ function computeDiagnostics(document) {
   }
 
   // Rule 4: legacy/removed words.
-  const bannedRe = new RegExp('\\b(' + Object.keys(BANNED_WORDS).join('|') + ')\\b', 'g');
-  while ((m = bannedRe.exec(text)) !== null) {
+  while ((m = BANNED_RE.exec(text)) !== null) {
     push(m.index, m[1].length, '`' + m[1] + '` is ' + BANNED_WORDS[m[1]], vscode.DiagnosticSeverity.Warning);
   }
   // let/val/mut are only banned as a binding form (`let x = ...`), not as
   // arbitrary identifiers elsewhere — narrower pattern to avoid false flags.
-  const bindingRe = /(^|[{};])\s*(let|val|mut)\s+[A-Za-z_][A-Za-z0-9_]*\s*=/gm;
-  while ((m = bindingRe.exec(text)) !== null) {
+  while ((m = BINDING_RE.exec(text)) !== null) {
     const kwOffset = m.index + m[0].indexOf(m[2]);
     push(kwOffset, m[2].length, 'Local bindings must use `const` or `var` — `' + m[2] + '` is not part of the language.', vscode.DiagnosticSeverity.Warning);
   }
@@ -315,8 +350,7 @@ function computeDiagnostics(document) {
     index.contracts.has(word) || index.enumVariants.has(word) ||
     localNames.has(word)
   );
-  const callRe = /\b([A-Za-z_][A-Za-z0-9_]*)\s*\(/g;
-  while ((m = callRe.exec(text)) !== null) {
+  while ((m = CALL_RE.exec(text)) !== null) {
     const name = m[1];
     const parenIdx = m.index + m[0].lastIndexOf('(');
     const parenEnd = matchBalanced(text, parenIdx);
@@ -360,8 +394,7 @@ function computeDiagnostics(document) {
   // `return someTypo`. Only fires when nothing follows but the statement
   // terminator, so `return someTypo.field` / `return someTypo()` / any real
   // expression is left alone — this only ever catches a lone, bare word.
-  const returnRe = /\breturn(\s+)([A-Za-z_][A-Za-z0-9_]*)[ \t]*(?=[;\r\n}]|$)/g;
-  while ((m = returnRe.exec(text)) !== null) {
+  while ((m = RETURN_RE.exec(text)) !== null) {
     const word = m[2];
     if (isKnownWord(word)) continue;
     const wordOffset = m.index + 'return'.length + m[1].length;
@@ -371,8 +404,7 @@ function computeDiagnostics(document) {
   // Rule 6: legacy top-level declarations (message/getter/event/wallet action).
   // Only at declaration position and followed by a name (or `action`), so a
   // field named `message:` or a `const message = ...` binding is not flagged.
-  const legacyRe = /(^|[\n{};])([ \t]*)(message|getter|event|wallet)\b/g;
-  while ((m = legacyRe.exec(text)) !== null) {
+  while ((m = LEGACY_RE.exec(text)) !== null) {
     const kw = m[3];
     const kwStart = m.index + m[1].length + m[2].length;
     const rest = text.slice(kwStart + kw.length);
@@ -387,8 +419,7 @@ function computeDiagnostics(document) {
   // Rule 7: only `@message(opcode)` may carry an argument list. Every other
   // annotation is bare — parameters belong in the function signature. This is
   // exactly the form the old @external(inMsg: Segment) snippet produced.
-  const badAnnRe = /@([a-z]+)\s*\(/g;
-  while ((m = badAnnRe.exec(text)) !== null) {
+  while ((m = BAD_ANN_RE.exec(text)) !== null) {
     const ann = m[1];
     if (!NO_ARG_ANNOTATIONS.has(ann)) continue;
     const parenIdx = m.index + m[0].length - 1;
@@ -400,8 +431,7 @@ function computeDiagnostics(document) {
 
   // Rule 8 + 9: buildMessage({...}) field validation, buildMessage.mode
   // checks, and `.send()` argument rejection.
-  const bmRe = /\bbuildMessage\s*\(/g;
-  while ((m = bmRe.exec(text)) !== null) {
+  while ((m = BM_RE.exec(text)) !== null) {
     const parenIdx = m.index + m[0].length - 1;
     const parenEnd = matchBalanced(text, parenIdx);
     if (parenEnd < 0) continue;
@@ -431,8 +461,7 @@ function computeDiagnostics(document) {
   }
 
   // Rule 9 (cont.): `.send()` takes no arguments.
-  const sendRe = /\.\s*send\s*\(/g;
-  while ((m = sendRe.exec(text)) !== null) {
+  while ((m = SEND_RE.exec(text)) !== null) {
     const parenIdx = m.index + m[0].length - 1;
     const parenEnd = matchBalanced(text, parenIdx);
     if (parenEnd < 0) continue;
@@ -443,19 +472,7 @@ function computeDiagnostics(document) {
   }
 
   // Rule 10: @get / @pure functions must not call mutating builtins or send.
-  const MUTATIONS = [
-    { re: /\bcontract\s*\.\s*setData\s*\(/g, name: 'setData()' },
-    { re: /\bcontract\s*\.\s*deleteData\s*\(/g, name: 'deleteData()' },
-    { re: /\.\s*save\s*\(\s*\)/g, name: 'save()' },
-    { re: /\.\s*touch\s*\(\s*\)/g, name: 'touch()' },
-    { re: /\.\s*set\s*\(/g, name: 'map set()' },
-    { re: /\.\s*delete\s*\(/g, name: 'map delete()' },
-    { re: /\.\s*send\s*\(/g, name: 'send()' },
-    { re: /\bemit\s*\(/g, name: 'emit()' },
-    { re: /\brefund\s*\(/g, name: 'refund()' }
-  ];
-  const getRe = /@(get|pure)\b[\s\S]*?\bfunc\b[^{;]*\{/g;
-  while ((m = getRe.exec(text)) !== null) {
+  while ((m = GET_RE.exec(text)) !== null) {
     const kind = m[1];
     const bodyOpen = m.index + m[0].length - 1;
     const bodyEnd = matchBalanced(text, bodyOpen);
@@ -469,7 +486,7 @@ function computeDiagnostics(document) {
         push(mm.index, mm[0].length, label + ' cannot call `' + mut.name + '`, which mutates state or performs a chain-visible side effect.');
       }
     }
-    getRe.lastIndex = bodyEnd; // don't rescan inside the body
+    GET_RE.lastIndex = bodyEnd; // don't rescan inside the body
   }
 
   return diags;

@@ -237,7 +237,15 @@ const WORD_DOCS = {
   ecrecover: 'Recovers the signer\'s 64-byte X‖Y public key from a 65-byte recoverable secp256k1 signature over a message hash. Malformed input soft-fails to empty bytes rather than trapping, matching Ethereum\'s ecrecover. Signature: ecrecover(msgHash: hash32, sig: bytes): bytes.',
 
   isSignatureValid: 'Verifies an ed25519 signature (ZIP-215) over raw data against a public key. Malformed input soft-fails to `false` rather than trapping. Same builtin as `verifySignature` -- both names lower to the identical opcode. Signature: isSignatureValid(data: bytes, sig: bytes, pubkey: bytes): bool.',
-  verifySignature: 'Verifies an ed25519 signature (ZIP-215) over raw data against a public key. Malformed input soft-fails to `false` rather than trapping. Same builtin as `isSignatureValid` -- both names lower to the identical opcode. Signature: verifySignature(data: bytes, sig: bytes, pubkey: bytes): bool.'
+  verifySignature: 'Verifies an ed25519 signature (ZIP-215) over raw data against a public key. Malformed input soft-fails to `false` rather than trapping. Same builtin as `isSignatureValid` -- both names lower to the identical opcode. Signature: verifySignature(data: bytes, sig: bytes, pubkey: bytes): bool.',
+
+  bn254G1Add: 'Adds two BN254 G1 points (64-byte uncompressed X‖Y encoding, no mask bits). Malformed, non-canonical, or off-curve operands soft-fail to empty bytes rather than trapping; the all-zero encoding is the valid point-at-infinity/identity. Signature: bn254G1Add(a: bytes, b: bytes): bytes.',
+  bn254G1ScalarMul: 'Multiplies a BN254 G1 point by a uint256 scalar. A malformed/off-curve point or a negative-magnitude scalar soft-fails to empty bytes rather than trapping. Signature: bn254G1ScalarMul(point: bytes, scalar: uint256): bytes.',
+  bn254G1IsOnCurve: 'Reports whether a 64-byte encoding decodes to a valid BN254 G1 point (on-curve, canonical coordinates). Never traps on malformed input. Signature: bn254G1IsOnCurve(point: bytes): bool.',
+  bn254G2Add: 'Adds two BN254 G2 points (128-byte X.A0‖X.A1‖Y.A0‖Y.A1 encoding). Requires both operands to be in the correct r-order subgroup, not just on-curve; malformed, off-curve, or out-of-subgroup input soft-fails to empty bytes rather than trapping. Signature: bn254G2Add(a: bytes, b: bytes): bytes.',
+  bn254G2ScalarMul: 'Multiplies a BN254 G2 point by a uint256 scalar. A malformed/off-curve/out-of-subgroup point or a negative-magnitude scalar soft-fails to empty bytes rather than trapping. Signature: bn254G2ScalarMul(point: bytes, scalar: uint256): bytes.',
+  bn254PairingCheck: 'Checks whether the product of pairings e(g1[i], g2[i]) over k pairs equals 1 -- the core Groth16/pairing-based verification primitive. k is hard-capped at 16; a length mismatch against the declared k, or any malformed/out-of-subgroup point, soft-fails to `false` rather than trapping. Signature: bn254PairingCheck(g1s: bytes, g2s: bytes, k: uint256): bool.',
+  poseidon2Bn254: 'Poseidon2 hash over n 32-byte BN254 scalar-field elements -- a ZK-circuit-friendly hash, unlike sha256/keccak256. Unlike the rest of this opcode family, a length mismatch against n or a non-canonical (>= the scalar field modulus) chunk TRAPS rather than soft-failing, since a hash has no safe "invalid input" sentinel. Signature: poseidon2Bn254(data: bytes, n: uint256): hash32.'
 };
 
 // Core language words offered in completion beyond the documented WORD_DOCS
@@ -263,7 +271,10 @@ const BUILTIN_FUNCTIONS = new Set([
   'mulDiv', 'mulDivFloor', 'mulDivRoundUp', 'mulDivCeil', 'mulDivNearest',
   'mulCmp', 'mulDivSigned', 'isqrt',
   'toUint128', 'toInt128', 'toInt256',
-  'verifySecp256k1', 'ecrecover'
+  'verifySecp256k1', 'ecrecover',
+  // BN254 pairing/ZK opcodes + Poseidon2 (AVM Phase D).
+  'bn254G1Add', 'bn254G1ScalarMul', 'bn254G1IsOnCurve',
+  'bn254G2Add', 'bn254G2ScalarMul', 'bn254PairingCheck', 'poseidon2Bn254'
 ]);
 
 // Words that are not part of the language: legacy/removed forms. Extension-
