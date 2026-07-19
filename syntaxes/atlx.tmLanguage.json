@@ -158,7 +158,7 @@
     },
     "builtin-functions": {
       "name": "support.function.builtin.atlx",
-      "match": "\\b(?:buildMessage|counterfactualAddress|autoDeployAddress|send|refund|emit|now|getBalance|random|getAddress|getOriginalBalance|getAttachedValue|logicalTime|currentBlockLogicalTime|setCodePostponed|isSignatureValid|isSegmentSignatureValid|aet|getData|setData|fromChunk|toChunk|fromSegment|fromHex|fromBase64|hash|bitsHash|skipBouncedPrefix|isEmpty|uint256|range|getSeed|setSeed|initialize|initializeBy)(?=\\s*\\()"
+      "match": "\\b(?:buildMessage|counterfactualAddress|autoDeployAddress|send|refund|emit|now|getBalance|random|getAddress|getOriginalBalance|getAttachedValue|logicalTime|currentBlockLogicalTime|setCodePostponed|isSignatureValid|verifySignature|aet|fromSegment|fromHex|fromBase64|hash|bitsHash|skipBouncedPrefix|isEmpty|uint256|range|getSeed|setSeed|initialize|initializeBy)(?=\\s*\\()"
     },
     "primitive-types": {
       "name": "support.type.primitive.atlx",

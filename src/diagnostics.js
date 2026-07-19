@@ -13,12 +13,14 @@ const { maskNonCode, mergedIndex } = require('./symbolIndex');
 //   1) @internal/@external/@bounced — at most one per contract;
 //   2) the annotated function must use its reserved name and signature;
 //   3) reserved names cannot be used without the matching annotation;
-//   4) legacy/removed words (cell, let/val/mut bindings, package, migrate,
-//      selector, ...) — not part of the language. NOTE: a builtin whose name
-//      simply changed (e.g. the old `slice`, now `subBytes`) is NOT here —
-//      it's not "legacy," it's just unresolved, so it falls through to (5)
-//      with a plain "not declared" message like any other typo, and remains
-//      free to be declared as the name of your own function;
+//   4) legacy/removed words (let/val/mut bindings, package, migrate,
+//      selector, ...) — not part of the language. NOTE: `slice` and `cell`
+//      are NOT here — `slice` is a builtin whose name simply changed (now
+//      `subBytes`), and `cell` was never ATLX syntax at all (the underlying
+//      TON/FunC term ATLX calls `Chunk` instead); neither is "legacy," both
+//      are just unresolved, so they fall through to (5) with a plain "not
+//      declared" message like any other typo, and remain free to be
+//      declared as the name of your own function;
 //   5) calls to names that are neither a builtin, nor declared in this file
 //      or any known workspace file, nor an enum variant constructor
 //      (5b: the same check extended to each individual call ARGUMENT, when

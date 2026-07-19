@@ -269,14 +269,16 @@ const BUILTIN_FUNCTIONS = new Set([
 // Words that are not part of the language: legacy/removed forms. Extension-
 // side mirror of what the compiler now rejects (parser.go reservedBindingNames,
 // lexer identifier rules, and the removal of package/migrate/selector).
-// `slice` is deliberately NOT here: it isn't a reserved/legacy word, just a
-// builtin name the compiler no longer recognizes (renamed to `subBytes`) —
-// writing `slice` gets the same plain "not declared / not a recognized
-// builtin" treatment as any other unresolved identifier (Rule 5 in
-// diagnostics.js), and a contract author remains free to declare their own
-// `func slice(...)`.
+// `slice` and `cell` are deliberately NOT here: neither is a reserved/legacy
+// keyword the compiler actively rejects — `slice` is just a builtin name the
+// compiler no longer recognizes (renamed to `subBytes`), and `cell` was
+// never ATLX syntax at all (it's the underlying TON/FunC term ATLX exposes
+// as `Chunk` instead). Writing either gets the same plain "not declared /
+// not a recognized builtin" treatment as any other unresolved identifier
+// (Rule 5 in diagnostics.js) — no special warning, no ban — so a contract
+// author remains free to declare their own `func slice(...)` or `func
+// cell(...)`.
 const BANNED_WORDS = {
-  cell: 'not part of the language — use `Chunk`.',
   isSlice: 'not part of the language.',
   isSliceSignatureValid: 'not part of the language — use `isSignatureValid`/`verifySignature`.',
   package: 'not part of the language — the only top-level unit form is `import`.',

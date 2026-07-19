@@ -60,7 +60,9 @@ function registerShimmerDecorations(context) {
     return empty;
   };
 
-  // uri string -> shimmer ranges for the whole document (from findShimmerRanges).
+  // uri string -> precomputed per-character shimmer entries for the whole
+  // document (see refreshMatches for why these are built here, once per
+  // edit, rather than inside the animation loop).
   const matchCache = new Map();
   // uri string -> whether that document's match count was capped (logged once).
   const cappedDocs = new Set();
@@ -82,7 +84,28 @@ function registerShimmerDecorations(context) {
     } else {
       cappedDocs.delete(document.uri.toString());
     }
-    matchCache.set(document.uri.toString(), ranges);
+    // Precompute each shimmered character's vscode.Range ONCE here, not on
+    // every animation tick. Document offsets (and therefore Positions/Ranges)
+    // are static until the next edit — only which palette STEP a character
+    // falls into changes frame to frame. The previous version called
+    // document.positionAt() twice per character inside applyDecorations,
+    // which runs on a ~90ms timer (≈11/sec) for every visible .atlx editor:
+    // up to MAX_SHIMMER_CHARS_PER_DOC × 2 positionAt calls, 11 times a
+    // second, for as long as the editor stays open, whether or not anything
+    // changed. Building the Range once per edit (debounced) instead makes
+    // the timer tick pure arithmetic (the step formula) plus array pushes.
+    const chars = [];
+    for (const { kind, start, end } of ranges) {
+      for (let offset = start; offset < end; offset++) {
+        chars.push({
+          kind,
+          charIndex: offset - start,
+          rangeStart: start,
+          range: new vscode.Range(document.positionAt(offset), document.positionAt(offset + 1))
+        });
+      }
+    }
+    matchCache.set(document.uri.toString(), chars);
   }
 
   function clearEditorDecorations(editor) {
@@ -92,20 +115,16 @@ function registerShimmerDecorations(context) {
   }
 
   function applyDecorations(editor, frame) {
-    const ranges = matchCache.get(editor.document.uri.toString());
-    if (!ranges || ranges.length === 0) return;
+    const chars = matchCache.get(editor.document.uri.toString());
+    if (!chars || chars.length === 0) return;
 
+    // Pure arithmetic + array pushes — no vscode.Position/Range construction
+    // and no document access at all; every Range was already built once in
+    // refreshMatches, so this is safe to run at ~11fps indefinitely.
     const byKindByStep = emptyDecorationLists();
-    const document = editor.document;
-    for (const { kind, start, end } of ranges) {
-      for (let offset = start; offset < end; offset++) {
-        const charIndex = offset - start;
-        const step = (((charIndex * PHASE_STEP + frame + start) % PALETTE_STEPS) + PALETTE_STEPS) % PALETTE_STEPS;
-        byKindByStep[kind][step].push(new vscode.Range(
-          document.positionAt(offset),
-          document.positionAt(offset + 1)
-        ));
-      }
+    for (const { kind, charIndex, rangeStart, range } of chars) {
+      const step = (((charIndex * PHASE_STEP + frame + rangeStart) % PALETTE_STEPS) + PALETTE_STEPS) % PALETTE_STEPS;
+      byKindByStep[kind][step].push(range);
     }
 
     for (const kind of Object.keys(TARGETS)) {
