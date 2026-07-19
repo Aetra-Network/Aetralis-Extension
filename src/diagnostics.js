@@ -2,7 +2,8 @@
 const vscode = require('vscode');
 const {
   HANDLERS, BANNED_WORDS, BUILTIN_FUNCTIONS, CONTROL_KEYWORDS_BEFORE_PAREN,
-  SEND_MODE_VALUES, BUILD_MESSAGE_FIELDS, LEGACY_DECLARATIONS, NO_ARG_ANNOTATIONS
+  SEND_MODE_VALUES, BUILD_MESSAGE_FIELDS, LEGACY_DECLARATIONS, NO_ARG_ANNOTATIONS,
+  LANGUAGE_KEYWORDS, INTEGER_TYPE_NAMES, WORD_DOCS
 } = require('./constants');
 const { maskNonCode, mergedIndex } = require('./symbolIndex');
 
@@ -12,10 +13,22 @@ const { maskNonCode, mergedIndex } = require('./symbolIndex');
 //   1) @internal/@external/@bounced — at most one per contract;
 //   2) the annotated function must use its reserved name and signature;
 //   3) reserved names cannot be used without the matching annotation;
-//   4) legacy/removed words (slice, cell, let/val/mut bindings, package,
-//      migrate, selector, ...) — not part of the language;
+//   4) legacy/removed words (cell, let/val/mut bindings, package, migrate,
+//      selector, ...) — not part of the language. NOTE: a builtin whose name
+//      simply changed (e.g. the old `slice`, now `subBytes`) is NOT here —
+//      it's not "legacy," it's just unresolved, so it falls through to (5)
+//      with a plain "not declared" message like any other typo, and remains
+//      free to be declared as the name of your own function;
 //   5) calls to names that are neither a builtin, nor declared in this file
-//      or any known workspace file, nor an enum variant constructor;
+//      or any known workspace file, nor an enum variant constructor
+//      (5b: the same check extended to each individual call ARGUMENT, when
+//      the whole argument is one bare identifier — e.g. `foo(someTypo)`;
+//      5c: the same check for a bare identifier that is the entire `return`
+//      expression). All three share one "is this word resolvable" test that
+//      also allows a word to be a function PARAMETER, a `for` loop's index
+//      name, or a `match` arm's bound name — extracted file-wide up front so
+//      a parameter/binding is never mistaken for an unknown identifier just
+//      because the extension has no real per-scope type checker;
 //   6) legacy declarations message/getter/event/wallet action (parser rejects);
 //   7) annotations other than @message may not carry an argument list;
 //   8) buildMessage({...}) — unknown/duplicate keys, missing receiver/body;
@@ -70,6 +83,85 @@ function topLevelFields(text, start, end) {
   }
   pushSeg(segStart, end);
   return fields;
+}
+
+// Split [start,end) into comma-separated segments at bracket depth 0 (no
+// `key:` requirement, unlike topLevelFields) — used for call-argument lists.
+function topLevelArgs(text, start, end) {
+  const args = [];
+  let depth = 0;
+  let segStart = start;
+  for (let i = start; i < end; i++) {
+    const c = text[i];
+    if (c === '(' || c === '{' || c === '[') depth++;
+    else if (c === ')' || c === '}' || c === ']') depth--;
+    else if (c === ',' && depth === 0) { args.push({ text: text.slice(segStart, i), start: segStart }); segStart = i + 1; }
+  }
+  args.push({ text: text.slice(segStart, end), start: segStart });
+  return args;
+}
+
+// Split a parameter-list-shaped string on top-level commas. `<>` is tracked
+// alongside `()`/`[]` here (unlike topLevelArgs) because parameter types
+// commonly nest generics — `m: Map<address, uint256>` must not split at the
+// comma inside `Map<...>`.
+function splitParamList(raw) {
+  const segs = [];
+  let depth = 0;
+  let segStart = 0;
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw[i];
+    if (c === '(' || c === '[' || c === '<') depth++;
+    else if (c === ')' || c === ']' || c === '>') depth--;
+    else if (c === ',' && depth === 0) { segs.push(raw.slice(segStart, i)); segStart = i + 1; }
+  }
+  segs.push(raw.slice(segStart));
+  return segs;
+}
+
+// Extracts the bound name from one parameter segment: `x: uint256` -> `x`,
+// `mutate self` -> `self`, `self: BasisPoints` -> `self`. Returns null for
+// anything that isn't a single identifier once the type/`mutate` are peeled
+// off (blank segment from a trailing comma, malformed input while typing).
+function paramName(seg) {
+  const s = seg.trim().replace(/^mutate\s+/, '');
+  const colonIdx = s.indexOf(':');
+  const name = (colonIdx >= 0 ? s.slice(0, colonIdx) : s).trim();
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ? name : null;
+}
+
+// File-wide (not properly per-scope) collection of names the extension has
+// no other record of but that are still legitimately bindable identifiers:
+// function/method parameters, a `for` loop's index name, and a `match` arm's
+// bound names (`Variant(x, y) => ...` / `-> ...` — `=>`/`->` are exclusively
+// match-arm syntax in this language, so this pattern is unambiguous). This
+// is a deliberate over-approximation, not real lexical scoping: a parameter
+// named `amount` in one function "covers" a bare use of `amount` anywhere
+// else in the same file, even a genuinely different, undeclared `amount`.
+// That's the correct tradeoff for a linter with no real type checker behind
+// it — a missed error is far less costly than a false one on ordinary,
+// correct code (flagging every parameter at its own use site would make
+// this feature actively harmful, not helpful).
+function collectLocalNames(text) {
+  const names = new Set();
+  const funcSigRe = /\bfunc\s+[A-Za-z_][A-Za-z0-9_]*(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)?\s*\(([^)]*)\)/g;
+  let mm;
+  while ((mm = funcSigRe.exec(text)) !== null) {
+    for (const seg of splitParamList(mm[1])) {
+      const n = paramName(seg);
+      if (n) names.add(n);
+    }
+  }
+  const forRe = /\bfor\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\b/g;
+  while ((mm = forRe.exec(text)) !== null) names.add(mm[1]);
+  const armRe = /\(([^()]*)\)\s*(?:=>|->)/g;
+  while ((mm = armRe.exec(text)) !== null) {
+    for (const seg of splitParamList(mm[1])) {
+      const t = seg.trim();
+      if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(t)) names.add(t);
+    }
+  }
+  return names;
 }
 
 // Split a send-mode expression on top-level `+`.
@@ -206,16 +298,45 @@ function computeDiagnostics(document) {
     push(kwOffset, m[2].length, 'Local bindings must use `const` or `var` — `' + m[2] + '` is not part of the language.', vscode.DiagnosticSeverity.Warning);
   }
 
-  // Rule 5: calls to unknown names.
+  // Rule 5 (+5b, +5c): calls to unknown names, unknown bare-identifier call
+  // arguments, and an unknown bare identifier as an entire `return` value.
   const index = mergedIndex(document.uri.toString());
+  const localNames = collectLocalNames(text);
+  const UNKNOWN_WORD_MESSAGE = (word) =>
+    '`' + word + '` is not declared in this file or any known workspace file, and is not a recognized builtin.';
+  const isKnownWord = (word) => (
+    BUILTIN_FUNCTIONS.has(word) || LANGUAGE_KEYWORDS.includes(word) ||
+    INTEGER_TYPE_NAMES.includes(word) || !!WORD_DOCS[word] ||
+    index.functions.has(word) || index.methods.has(word) ||
+    index.structs.has(word) || index.enums.has(word) || index.types.has(word) ||
+    index.consts.has(word) || index.variables.has(word) ||
+    index.contracts.has(word) || index.enumVariants.has(word) ||
+    localNames.has(word)
+  );
   const callRe = /\b([A-Za-z_][A-Za-z0-9_]*)\s*\(/g;
   while ((m = callRe.exec(text)) !== null) {
     const name = m[1];
+    const parenIdx = m.index + m[0].lastIndexOf('(');
+    const parenEnd = matchBalanced(text, parenIdx);
+
+    // 5b. Bare-identifier arguments, e.g. `foo(someTypo)`. Skipped for a
+    // match-arm pattern (`Variant(x, y) => ...`) — those parens BIND new
+    // names, they don't read existing ones, so there is nothing to resolve.
+    if (parenEnd > parenIdx && !/^\s*(=>|->)/.test(text.slice(parenEnd + 1))) {
+      for (const arg of topLevelArgs(text, parenIdx + 1, parenEnd)) {
+        const trimmed = arg.text.trim();
+        if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(trimmed)) continue; // literal, call, field access, expr — not our concern
+        if (trimmed === '_' || trimmed.startsWith('_')) continue; // conventional ignore/placeholder name
+        if (isKnownWord(trimmed)) continue;
+        const argOffset = arg.start + (arg.text.length - arg.text.trimStart().length);
+        push(argOffset, trimmed.length, UNKNOWN_WORD_MESSAGE(trimmed), vscode.DiagnosticSeverity.Warning);
+      }
+    }
+
     if (CONTROL_KEYWORDS_BEFORE_PAREN.has(name)) continue;
     if (BUILTIN_FUNCTIONS.has(name)) continue;
-    // Already reported by Rule 4 with a more specific message (e.g. "slice"
-    // renamed to "subBytes") — don't also report it here as a generic unknown
-    // function, which would be redundant and less actionable.
+    // Already reported by Rule 4 with a more specific message — don't also
+    // report it here as a generic unknown function.
     if (BANNED_WORDS[name]) continue;
     if (index.enumVariants.has(name)) continue; // enum variant constructor, e.g. Deposit(amount: uint64)
     // Receiver-style call (Type.method(...) or value.method(...)) — not
@@ -230,9 +351,19 @@ function computeDiagnostics(document) {
     if (/\bfunc\s+(?:[A-Za-z_][A-Za-z0-9_]*\s*\.\s*)?$/.test(decl)) continue;
     if (index.functions.has(name) || index.methods.has(name)) continue;
     if (index.structs.has(name)) continue; // shouldn't normally be called, but not our concern here
-    push(m.index, name.length,
-      '`' + name + '` is not declared in this file or any known workspace file, and is not a recognized builtin.',
-      vscode.DiagnosticSeverity.Warning);
+    push(m.index, name.length, UNKNOWN_WORD_MESSAGE(name), vscode.DiagnosticSeverity.Warning);
+  }
+
+  // 5c. A bare identifier as the ENTIRE `return` expression, e.g.
+  // `return someTypo`. Only fires when nothing follows but the statement
+  // terminator, so `return someTypo.field` / `return someTypo()` / any real
+  // expression is left alone — this only ever catches a lone, bare word.
+  const returnRe = /\breturn(\s+)([A-Za-z_][A-Za-z0-9_]*)[ \t]*(?=[;\r\n}]|$)/g;
+  while ((m = returnRe.exec(text)) !== null) {
+    const word = m[2];
+    if (isKnownWord(word)) continue;
+    const wordOffset = m.index + 'return'.length + m[1].length;
+    push(wordOffset, word.length, UNKNOWN_WORD_MESSAGE(word), vscode.DiagnosticSeverity.Warning);
   }
 
   // Rule 6: legacy top-level declarations (message/getter/event/wallet action).

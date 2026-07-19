@@ -234,7 +234,10 @@ const WORD_DOCS = {
   toInt256: 'Checked re-tagging cast from an unsigned uint256 magnitude (e.g. a `Ratio256`/`BasisPoints`-derived value) into signed `int256`. Traps if the magnitude does not fit (>= 2^255) -- never silently wraps into a negative value. Signature: toInt256(x: uint256): int256.',
 
   verifySecp256k1: 'Verifies a 64-byte compact R‖S secp256k1 signature over a 32-byte message hash against a public key. Malformed input soft-fails to `false` rather than trapping, mirroring Ethereum\'s ecrecover. Signature: verifySecp256k1(msgHash: hash32, sig: bytes, pubkey: bytes): bool.',
-  ecrecover: 'Recovers the signer\'s 64-byte X‖Y public key from a 65-byte recoverable secp256k1 signature over a message hash. Malformed input soft-fails to empty bytes rather than trapping, matching Ethereum\'s ecrecover. Signature: ecrecover(msgHash: hash32, sig: bytes): bytes.'
+  ecrecover: 'Recovers the signer\'s 64-byte X‖Y public key from a 65-byte recoverable secp256k1 signature over a message hash. Malformed input soft-fails to empty bytes rather than trapping, matching Ethereum\'s ecrecover. Signature: ecrecover(msgHash: hash32, sig: bytes): bytes.',
+
+  isSignatureValid: 'Verifies an ed25519 signature (ZIP-215) over raw data against a public key. Malformed input soft-fails to `false` rather than trapping. Same builtin as `verifySignature` -- both names lower to the identical opcode. Signature: isSignatureValid(data: bytes, sig: bytes, pubkey: bytes): bool.',
+  verifySignature: 'Verifies an ed25519 signature (ZIP-215) over raw data against a public key. Malformed input soft-fails to `false` rather than trapping. Same builtin as `isSignatureValid` -- both names lower to the identical opcode. Signature: verifySignature(data: bytes, sig: bytes, pubkey: bytes): bool.'
 };
 
 // Core language words offered in completion beyond the documented WORD_DOCS
@@ -243,7 +246,7 @@ const WORD_DOCS = {
 const LANGUAGE_KEYWORDS = [
   'if', 'else', 'while', 'do', 'repeat', 'for', 'break', 'continue', 'return',
   'import', 'contract', 'struct', 'enum', 'type', 'func',
-  'true', 'false', 'self'
+  'true', 'false', 'self', 'null'
 ];
 
 // Callable without a receiver — used both for completion and for the
@@ -252,7 +255,7 @@ const BUILTIN_FUNCTIONS = new Set([
   'buildMessage', 'counterfactualAddress', 'autoDeployAddress', 'getAddress',
   'getOriginalBalance', 'getAttachedValue', 'getBalance', 'now', 'logicalTime',
   'currentBlockLogicalTime', 'aet', 'address', 'hash', 'isSignatureValid',
-  'isSegmentSignatureValid', 'len', 'setCodePostponed', 'random',
+  'verifySignature', 'len', 'setCodePostponed', 'random',
   // Byte-exact hashes, byte manipulation, full-width math, and signatures
   // (x/aetravm/compiler/compile.go, x/aetravm/avm/avm.go).
   'sha256', 'keccak256', 'ripemd160', 'sha512', 'blake2b',
@@ -266,15 +269,16 @@ const BUILTIN_FUNCTIONS = new Set([
 // Words that are not part of the language: legacy/removed forms. Extension-
 // side mirror of what the compiler now rejects (parser.go reservedBindingNames,
 // lexer identifier rules, and the removal of package/migrate/selector).
-// `slice` used to be real language surface (the byte-window builtin) and was
-// deliberately excluded from this list for that reason — the compiler has
-// since renamed that builtin to `subBytes`, so `slice` is now itself a
-// legacy/removed name and belongs here like any other.
+// `slice` is deliberately NOT here: it isn't a reserved/legacy word, just a
+// builtin name the compiler no longer recognizes (renamed to `subBytes`) —
+// writing `slice` gets the same plain "not declared / not a recognized
+// builtin" treatment as any other unresolved identifier (Rule 5 in
+// diagnostics.js), and a contract author remains free to declare their own
+// `func slice(...)`.
 const BANNED_WORDS = {
   cell: 'not part of the language — use `Chunk`.',
-  slice: 'not part of the language — the byte-window builtin was renamed to `subBytes(data, start, len)`.',
   isSlice: 'not part of the language.',
-  isSliceSignatureValid: 'not part of the language — use `isSignatureValid`/`isSegmentSignatureValid`.',
+  isSliceSignatureValid: 'not part of the language — use `isSignatureValid`/`verifySignature`.',
   package: 'not part of the language — the only top-level unit form is `import`.',
   migrate: 'not part of the language — message kinds are `external`/`internal`/`bounced` only.',
   selector: 'not part of the language.'
