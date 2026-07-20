@@ -86,6 +86,7 @@ const SEND_MODE_VALUES = {
   SEND_DESTROY_IF_EMPTY: 32,
   SEND_CARRY_REMAINDER: 64,
   SEND_DRAIN_BALANCE: 128,
+  SEND_PAYOUT_TO_WALLET: 256,
   SEND_ESTIMATE_ONLY: 1024
 };
 
@@ -180,6 +181,7 @@ const SEND_MODE_DOCS = {
   SEND_DESTROY_IF_EMPTY: 'After the send debit, if the source balance reached zero the contract is irreversibly deactivated — status `deleted`, storage cleared. Pairs with `SEND_DRAIN_BALANCE` (the withdraw-all-and-self-destruct idiom).',
   SEND_CARRY_REMAINDER: 'Forwards the remaining value of the inbound message instead of a fixed amount. Mutually exclusive with `SEND_DRAIN_BALANCE`.',
   SEND_DRAIN_BALANCE: 'Sends the contract\'s **entire** remaining balance (`amount` is ignored). To keep a reserve, omit this flag and use an explicit amount. Mutually exclusive with `SEND_CARRY_REMAINDER`.',
+  SEND_PAYOUT_TO_WALLET: 'Routes the send to a plain wallet address instead of a registered contract, moving real AET out of the contract\'s storage-rent-reserved balance into the destination wallet via the bank module — the only supported way for a contract to pay a human wallet directly. Mutually exclusive with `SEND_DRAIN_BALANCE` and `SEND_CARRY_REMAINDER`.',
   SEND_ESTIMATE_ONLY: 'Dry-run — computes fees without sending. Cannot be combined with any other flag.'
 };
 

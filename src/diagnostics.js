@@ -219,9 +219,14 @@ function validateSendMode(raw, offset, push) {
   }
   const DRAIN = 128;
   const CARRY = 64;
+  const PAYOUT = 256;
   const EST = 1024;
   if ((mask & DRAIN) && (mask & CARRY)) {
     push(spanStart, spanLen, 'SEND_DRAIN_BALANCE and SEND_CARRY_REMAINDER are mutually exclusive.');
+  } else if ((mask & PAYOUT) && (mask & DRAIN)) {
+    push(spanStart, spanLen, 'SEND_PAYOUT_TO_WALLET and SEND_DRAIN_BALANCE are mutually exclusive.');
+  } else if ((mask & PAYOUT) && (mask & CARRY)) {
+    push(spanStart, spanLen, 'SEND_PAYOUT_TO_WALLET and SEND_CARRY_REMAINDER are mutually exclusive.');
   } else if ((mask & EST) && (mask & ~EST)) {
     push(spanStart, spanLen, 'SEND_ESTIMATE_ONLY cannot be combined with other send modes.');
   }

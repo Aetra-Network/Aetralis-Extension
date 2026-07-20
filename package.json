@@ -2,7 +2,7 @@
   "name": "aetralis-language",
   "displayName": "Aetralis Language",
   "description": "Language support for Aetralis (.atlx) smart contracts.",
-  "version": "2.2.0",
+  "version": "2.3.2",
   "publisher": "softwaremaestro",
   "repository": {
     "type": "git",
@@ -12,7 +12,7 @@
     "url": "https://github.com/Aetra-Network/Aetralis-Extension/issues"
   },
   "homepage": "https://github.com/Aetra-Network/Aetralis-Extension#readme",
-  "icon": "assets/atlx.png",
+  "icon": "assets/atlx-marketplace.png",
   "license": "MIT",
   "scripts": {
     "package": "node -e \"for (const f of require('fs').readdirSync('.')) if (f.endsWith('.vsix')) require('fs').unlinkSync(f)\" && npx --yes @vscode/vsce package --readme-path docs/marketplace-readme.md",
@@ -49,7 +49,7 @@
         ],
         "configuration": "./language-configuration.json",
         "icon": {
-          "light": "./assets/atlx.png",
+          "light": "./assets/atlx-dark.png",
           "dark": "./assets/atlx.png"
         }
       }
@@ -90,6 +90,142 @@
         "editor.wordBasedSuggestions": "off"
       },
       "editor.tokenColorCustomizations": {
+        "[*Light*]": {
+          "textMateRules": [
+            {
+              "scope": [
+                "comment.line.double-slash.atlx",
+                "comment.block.atlx",
+                "punctuation.definition.bracket.comment.atlx"
+              ],
+              "settings": {
+                "foreground": "#637F44"
+              }
+            },
+            {
+              "scope": "markup.inline.raw.atlx",
+              "settings": {
+                "foreground": "#637F44",
+                "fontStyle": "italic"
+              }
+            },
+            {
+              "scope": "string.quoted.double.atlx",
+              "settings": {
+                "foreground": "#976F3B"
+              }
+            },
+            {
+              "scope": "constant.character.escape.atlx",
+              "settings": {
+                "foreground": "#9C6E2A"
+              }
+            },
+            {
+              "scope": "keyword.declaration.atlx",
+              "settings": {
+                "foreground": "#A34DDD"
+              }
+            },
+            {
+              "scope": "storage.type.annotation.atlx",
+              "settings": {
+                "foreground": "#AB6700",
+                "fontStyle": "bold italic"
+              }
+            },
+            {
+              "scope": "keyword.other.contract-meta.atlx",
+              "settings": {
+                "foreground": "#0081A2"
+              }
+            },
+            {
+              "scope": "support.function.reserved-handler.atlx",
+              "settings": {
+                "foreground": "#7A7A32",
+                "fontStyle": "bold"
+              }
+            },
+            {
+              "scope": "keyword.control.atlx",
+              "settings": {
+                "foreground": "#D63E4A"
+              }
+            },
+            {
+              "scope": [
+                "storage.modifier.binding.atlx",
+                "variable.language.self.atlx"
+              ],
+              "settings": {
+                "foreground": "#9A6F1E"
+              }
+            },
+            {
+              "scope": [
+                "support.function.builtin.atlx",
+                "support.class.builtin-namespace.atlx"
+              ],
+              "settings": {
+                "foreground": "#32818B"
+              }
+            },
+            {
+              "scope": "support.type.primitive.atlx",
+              "settings": {
+                "foreground": "#157ACC"
+              }
+            },
+            {
+              "scope": [
+                "support.type.container.atlx",
+                "entity.name.type.atlx"
+              ],
+              "settings": {
+                "foreground": "#007CC0"
+              }
+            },
+            {
+              "scope": "entity.name.function.atlx",
+              "settings": {
+                "foreground": "#7A7A32"
+              }
+            },
+            {
+              "scope": [
+                "constant.language.atlx",
+                "constant.numeric.atlx",
+                "constant.other.caps.atlx"
+              ],
+              "settings": {
+                "foreground": "#A46931"
+              }
+            },
+            {
+              "scope": "constant.language.send-mode.atlx",
+              "settings": {
+                "foreground": "#A46931",
+                "fontStyle": "bold"
+              }
+            },
+            {
+              "scope": [
+                "keyword.operator.atlx",
+                "punctuation.atlx"
+              ],
+              "settings": {
+                "foreground": "#6B778D"
+              }
+            },
+            {
+              "scope": "variable.other.atlx",
+              "settings": {
+                "foreground": "#6B778D"
+              }
+            }
+          ]
+        },
         "textMateRules": [
           {
             "scope": [
