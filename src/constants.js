@@ -247,7 +247,8 @@ const WORD_DOCS = {
   bn254G2Add: 'Adds two BN254 G2 points (128-byte X.A0‖X.A1‖Y.A0‖Y.A1 encoding). Requires both operands to be in the correct r-order subgroup, not just on-curve; malformed, off-curve, or out-of-subgroup input soft-fails to empty bytes rather than trapping. Signature: bn254G2Add(a: bytes, b: bytes): bytes.',
   bn254G2ScalarMul: 'Multiplies a BN254 G2 point by a uint256 scalar. A malformed/off-curve/out-of-subgroup point or a negative-magnitude scalar soft-fails to empty bytes rather than trapping. Signature: bn254G2ScalarMul(point: bytes, scalar: uint256): bytes.',
   bn254PairingCheck: 'Checks whether the product of pairings e(g1[i], g2[i]) over k pairs equals 1 -- the core Groth16/pairing-based verification primitive. k is hard-capped at 16; a length mismatch against the declared k, or any malformed/out-of-subgroup point, soft-fails to `false` rather than trapping. Signature: bn254PairingCheck(g1s: bytes, g2s: bytes, k: uint256): bool.',
-  poseidon2Bn254: 'Poseidon2 hash over n 32-byte BN254 scalar-field elements -- a ZK-circuit-friendly hash, unlike sha256/keccak256. Unlike the rest of this opcode family, a length mismatch against n or a non-canonical (>= the scalar field modulus) chunk TRAPS rather than soft-failing, since a hash has no safe "invalid input" sentinel. Signature: poseidon2Bn254(data: bytes, n: uint256): hash32.'
+  poseidon2Bn254: 'Poseidon2 hash over n 32-byte BN254 scalar-field elements -- a ZK-circuit-friendly hash, unlike sha256/keccak256. Unlike the rest of this opcode family, a length mismatch against n or a non-canonical (>= the scalar field modulus) chunk TRAPS rather than soft-failing, since a hash has no safe "invalid input" sentinel. Signature: poseidon2Bn254(data: bytes, n: uint256): hash32.',
+  externalGet: 'Read-only synchronous call into ANOTHER already-deployed contract\'s `@get` function, reading its current committed storage -- no message round-trip, no async bus, and (being a read) no atomicity/rollback concern. A bare free-function call, not a dotted `target.method()` -- the first three arguments are always positional: the target `address`, the `@get` method name as a string literal, and the expected return type as a string literal (an integer kind, `bool`, `address`, `hash`/`hash32`, `bytes`, `string`, `coins`, or `timestamp`); any further arguments are forwarded to the callee\'s getter. The expression\'s own type is exactly the expected-type argument, so `externalGet(oracle, "price", "uint64")` has type `uint64`. A depth-limited call chain (`MaxExternalGetDepth`, far smaller than the ordinary intra-contract call-stack limit, since this crosses contracts via real Go-level recursion). Signature: externalGet(target: address, method: string, expectedType: string, ...args): <expectedType>.'
 };
 
 // Core language words offered in completion beyond the documented WORD_DOCS
@@ -276,7 +277,10 @@ const BUILTIN_FUNCTIONS = new Set([
   'verifySecp256k1', 'ecrecover',
   // BN254 pairing/ZK opcodes + Poseidon2 (AVM Phase D).
   'bn254G1Add', 'bn254G1ScalarMul', 'bn254G1IsOnCurve',
-  'bn254G2Add', 'bn254G2ScalarMul', 'bn254PairingCheck', 'poseidon2Bn254'
+  'bn254G2Add', 'bn254G2ScalarMul', 'bn254PairingCheck', 'poseidon2Bn254',
+  // Read-only cross-contract call (x/aetravm/compiler/compile.go's
+  // "externalget" case, design doc §6/§6.8).
+  'externalGet'
 ]);
 
 // Words that are not part of the language: legacy/removed forms. Extension-
@@ -316,8 +320,11 @@ const ANNOTATION_SNIPPETS = {
 };
 
 // Control-flow keywords that are followed by `(` but are not function calls
-// — excluded from the "unknown function" diagnostic.
-const CONTROL_KEYWORDS_BEFORE_PAREN = new Set(['if', 'while', 'for', 'match', 'assert', 'return']);
+// — excluded from the "unknown function" diagnostic. `const`/`var` are here
+// for the destructuring-binding form `const (a, b) = f()` (design doc §2.4):
+// the `(` right after the keyword binds new names, it doesn't call anything
+// named `const`/`var`.
+const CONTROL_KEYWORDS_BEFORE_PAREN = new Set(['if', 'while', 'for', 'match', 'assert', 'return', 'const', 'var']);
 
 module.exports = {
   HANDLERS,

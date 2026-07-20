@@ -140,7 +140,11 @@ function indexSource(text, uri) {
     index.contracts.set(m[1], { name: m[1], location: loc(nameOffset, m[1].length) });
   }
 
-  const funcRe = /\bfunc\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*\.\s*([A-Za-z_][A-Za-z0-9_]*))?\s*\(([^)]*)\)\s*(?:(?:->|:)\s*([A-Za-z_][A-Za-z0-9_<>?,\s]*?))?\s*\{/g;
+  // Return-type group allows a leading `(` so a tuple return type like
+  // `(uint64, uint64)` (design doc §2, real intra-contract CALL/RET) matches
+  // too, not just a single named type -- the group stays lazy (`*?`) so it
+  // still stops at the shortest span before the function body's `{`.
+  const funcRe = /\bfunc\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*\.\s*([A-Za-z_][A-Za-z0-9_]*))?\s*\(([^)]*)\)\s*(?:(?:->|:)\s*([A-Za-z_(][A-Za-z0-9_<>?,\s()]*?))?\s*\{/g;
   while ((m = funcRe.exec(text)) !== null) {
     const isMethod = !!m[2];
     const name = isMethod ? m[2] : m[1];
@@ -174,6 +178,28 @@ function indexSource(text, uri) {
     const nameOffset = m.index + m[0].indexOf(m[1], m[0].indexOf('var'));
     if (!index.variables.has(m[1])) {
       index.variables.set(m[1], { name: m[1], value: m[2].trim().replace(/[{,].*$/, '').trim(), location: loc(nameOffset, m[1].length) });
+    }
+  }
+
+  // Destructuring bindings, `const (a, b) = f()` / `var (a, b) = f()` (design
+  // doc §2.4) -- the single-name constRe/varRe above never match these (the
+  // name position is `(`, not an identifier), so every destructured name
+  // would otherwise look undeclared everywhere it's read. At least 2 names
+  // required, matching the parser's own minimum (parser.go's `parseStatement`
+  // rejects fewer at parse time).
+  const destructureRe = /\b(const|var)\s*\(\s*([A-Za-z_][A-Za-z0-9_]*(?:\s*,\s*[A-Za-z_][A-Za-z0-9_]*)+)\s*\)\s*=/g;
+  while ((m = destructureRe.exec(text)) !== null) {
+    const mutable = m[1] === 'var';
+    const target = mutable ? index.variables : index.consts;
+    let searchFrom = m.index;
+    for (const rawName of m[2].split(',')) {
+      const name = rawName.trim();
+      if (name === '_' || name.startsWith('_')) continue; // conventional ignore/placeholder name
+      const nameOffset = text.indexOf(name, searchFrom);
+      searchFrom = nameOffset + name.length;
+      if (!target.has(name)) {
+        target.set(name, { name, value: m[0].slice(m[0].indexOf('(')), location: loc(nameOffset, name.length) });
+      }
     }
   }
 
