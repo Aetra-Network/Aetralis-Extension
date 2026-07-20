@@ -2,7 +2,7 @@
   "name": "aetralis-language",
   "displayName": "Aetralis Language",
   "description": "Language support for Aetralis (.atlx) smart contracts.",
-  "version": "2.3.3",
+  "version": "2.4.0",
   "publisher": "softwaremaestro",
   "repository": {
     "type": "git",

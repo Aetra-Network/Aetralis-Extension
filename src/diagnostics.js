@@ -148,7 +148,13 @@ function paramName(seg) {
 // on every debounced keystroke): each loop below always runs to exhaustion
 // (exec returns null, which resets a global regex's lastIndex to 0), so a
 // shared instance across calls is safe — no state leaks between documents.
-const COLLECT_FUNC_SIG_RE = /\bfunc\s+[A-Za-z_][A-Za-z0-9_]*(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)?\s*\(([^)]*)\)/g;
+// The optional `(?:\s*<[^>]*>)?` before the parameter list tolerates a
+// generic function's type-param list, e.g. `func foo<T>(x: T): T { ... }`
+// (generics v1, x/aetravm/compiler/generics.go) -- without it, this regex
+// never matches a generic declaration at all, so its parameter (`x` here)
+// is never registered as a known local name, and a bare use of `x` inside
+// the function body can be false-flagged as "not declared" by Rule 5b/5c.
+const COLLECT_FUNC_SIG_RE = /\bfunc\s+[A-Za-z_][A-Za-z0-9_]*(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)?(?:\s*<[^>]*>)?\s*\(([^)]*)\)/g;
 const COLLECT_FOR_RE = /\bfor\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\b/g;
 const COLLECT_ARM_RE = /\(([^()]*)\)\s*(?:=>|->)/g;
 

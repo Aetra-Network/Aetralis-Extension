@@ -114,7 +114,11 @@ function indexSource(text, uri) {
   };
 
   let m;
-  const structRe = /\bstruct\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{([^}]*)\}/g;
+  // The optional `(?:\s*<[^>]*>)?` tolerates a generic struct's type-param
+  // list, e.g. `struct Pair<A, B> { first: A  second: B }` (generics v1,
+  // x/aetravm/compiler/generics.go) -- without it this regex never matches a
+  // generic struct declaration, so it is invisible to hover/go-to-definition.
+  const structRe = /\bstruct\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*<[^>]*>)?\s*\{([^}]*)\}/g;
   while ((m = structRe.exec(text)) !== null) {
     const nameOffset = m.index + m[0].indexOf(m[1], m[0].indexOf('struct'));
     index.structs.set(m[1], { name: m[1], fields: parseStructFields(m[2]), location: loc(nameOffset, m[1].length) });
@@ -144,7 +148,16 @@ function indexSource(text, uri) {
   // `(uint64, uint64)` (design doc §2, real intra-contract CALL/RET) matches
   // too, not just a single named type -- the group stays lazy (`*?`) so it
   // still stops at the shortest span before the function body's `{`.
-  const funcRe = /\bfunc\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*\.\s*([A-Za-z_][A-Za-z0-9_]*))?\s*\(([^)]*)\)\s*(?:(?:->|:)\s*([A-Za-z_(][A-Za-z0-9_<>?,\s()]*?))?\s*\{/g;
+  //
+  // The optional `(?:\s*<[^>]*>)?` between the (receiver-qualified) name and
+  // the parameter list tolerates a generic function's type-param list, e.g.
+  // `func foo<T>(x: T): T { ... }` (generics v1, x/aetravm/compiler/
+  // generics.go — generic functions are never receiver-style, so this only
+  // ever appears after the plain-name branch, not after `Type.method`).
+  // Without it, `foo` is never indexed, so hovering/go-to-definition on any
+  // call to it (including the turbofish call-site form `foo::<uint64>(x)`,
+  // which is looked up purely by name) silently returns nothing.
+  const funcRe = /\bfunc\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*\.\s*([A-Za-z_][A-Za-z0-9_]*))?(?:\s*<[^>]*>)?\s*\(([^)]*)\)\s*(?:(?:->|:)\s*([A-Za-z_(][A-Za-z0-9_<>?,\s()]*?))?\s*\{/g;
   while ((m = funcRe.exec(text)) !== null) {
     const isMethod = !!m[2];
     const name = isMethod ? m[2] : m[1];

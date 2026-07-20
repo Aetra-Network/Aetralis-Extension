@@ -190,6 +190,9 @@ const WORD_DOCS = {
   onExternalMessage: 'Reserved name for the `@external` handler. Signature: `func onExternalMessage(inMsg: Segment)`. Cannot be used for any other function.',
   onBouncedMessage: 'Reserved name for the `@bounced` handler. Signature: `func onBouncedMessage(in: InMessageBounced)`. Cannot be used for any other function.',
   buildMessage: 'Canonical builder for outbound messages: `buildMessage({ receiver, body, bounce, amount, mode, textComment })`. `receiver` and `body` are required; `mode` and `textComment` are optional. Send it with `.send()`.',
+  wrapMessage: 'Wraps a `@message`-annotated struct literal into that same message type, stamping its opcode as a hidden field — used so a NESTED `match` (one whose scrutinee is not the handler\'s own top-level message) can still recover the discriminant via a plain field read. Signature: wrapMessage(msg: <a @message struct literal>): <that struct\'s own type>.',
+  ok: 'Wraps a value as the present/success case of an `Option<T>` (or the Ok case of a `Result<T, E>`) — typically a `@get` getter\'s return value when it may or may not have one, consumed by `match`. Erased at runtime: purely a compile-time marker, no separate runtime tag. Signature: ok(x: T): Option<T>.',
+  err: 'Wraps a payload as the error case of a `Result<T, E>` (the Ok type defaults to `uint64`) — consumed by `match`. Erased at runtime, like `ok`. Signature: err(e: E): Result<uint64, E>.',
   aet: 'Compile-time helper: converts a decimal AET string into base-unit `coins`, e.g. `aet("1.5")`. Rejects excess precision instead of rounding.',
   lazy: 'Deferred decoding/reading: the value is materialized deterministically on first use, e.g. `const st = lazy Storage.load()`.',
   mutate: 'Marks a receiver or argument as mutable inside the function, e.g. `func Storage.touch(mutate self)`.',
@@ -221,6 +224,7 @@ const WORD_DOCS = {
   fromBytesBE: 'Big-endian decode into the widest lossless integer. Traps if the input is more than 32 bytes. Signature: fromBytesBE(data: bytes): uint256.',
 
   subBytes: 'Extracts a byte window: subBytes(data, start, len). O(len) -- traps if the window runs past the end of `data`, mirroring `byteAt`/`concat`\'s deterministic-trap-not-panic rule. Renamed from `slice` -- `slice` is no longer part of the language (see the `cell`/`isSlice`-style entries in the legacy-word warnings). Signature: subBytes(data: bytes, start: uint256, len: uint256): bytes.',
+  addressBytes: 'Returns the raw UTF-8 bytes of an address\'s canonical string form, so it can be folded into a byte-exact hash (e.g. `sha256(concat(addressBytes(whom), ...))`) -- the hash builtins only accept `bytes`/`string`/`hash` operands, not `address` directly. Typical use: binding a specific recipient into a proof-of-work / commitment digest so a solution cannot be copied and resubmitted for a different recipient. Signature: addressBytes(addr: address): bytes.',
 
   mulDiv: 'Full-width fused multiply-divide: floor(a*b/c). The a*b product is formed at unbounded width so it never overflows -- only the final quotient is range-checked to uint256 (traps if it does not fit, or if c == 0). Signature: mulDiv(a: uint256, b: uint256, c: uint256): uint256.',
   mulDivFloor: 'Alias of `mulDiv` -- floor(a*b/c). Accepted spelling when the rounding direction should be explicit in the call site; lowers to the exact same opcode as `mulDiv`, not a distinct one. Signature: mulDivFloor(a: uint256, b: uint256, c: uint256): uint256.',
@@ -248,7 +252,47 @@ const WORD_DOCS = {
   bn254G2ScalarMul: 'Multiplies a BN254 G2 point by a uint256 scalar. A malformed/off-curve/out-of-subgroup point or a negative-magnitude scalar soft-fails to empty bytes rather than trapping. Signature: bn254G2ScalarMul(point: bytes, scalar: uint256): bytes.',
   bn254PairingCheck: 'Checks whether the product of pairings e(g1[i], g2[i]) over k pairs equals 1 -- the core Groth16/pairing-based verification primitive. k is hard-capped at 16; a length mismatch against the declared k, or any malformed/out-of-subgroup point, soft-fails to `false` rather than trapping. Signature: bn254PairingCheck(g1s: bytes, g2s: bytes, k: uint256): bool.',
   poseidon2Bn254: 'Poseidon2 hash over n 32-byte BN254 scalar-field elements -- a ZK-circuit-friendly hash, unlike sha256/keccak256. Unlike the rest of this opcode family, a length mismatch against n or a non-canonical (>= the scalar field modulus) chunk TRAPS rather than soft-failing, since a hash has no safe "invalid input" sentinel. Signature: poseidon2Bn254(data: bytes, n: uint256): hash32.',
-  externalGet: 'Read-only synchronous call into ANOTHER already-deployed contract\'s `@get` function, reading its current committed storage -- no message round-trip, no async bus, and (being a read) no atomicity/rollback concern. A bare free-function call, not a dotted `target.method()` -- the first three arguments are always positional: the target `address`, the `@get` method name as a string literal, and the expected return type as a string literal (an integer kind, `bool`, `address`, `hash`/`hash32`, `bytes`, `string`, `coins`, or `timestamp`); any further arguments are forwarded to the callee\'s getter. The expression\'s own type is exactly the expected-type argument, so `externalGet(oracle, "price", "uint64")` has type `uint64`. A depth-limited call chain (`MaxExternalGetDepth`, far smaller than the ordinary intra-contract call-stack limit, since this crosses contracts via real Go-level recursion). Signature: externalGet(target: address, method: string, expectedType: string, ...args): <expectedType>.'
+  externalGet: 'Read-only synchronous call into ANOTHER already-deployed contract\'s `@get` function, reading its current committed storage -- no message round-trip, no async bus, and (being a read) no atomicity/rollback concern. A bare free-function call, not a dotted `target.method()` -- the first three arguments are always positional: the target `address`, the `@get` method name as a string literal, and the expected return type as a string literal (an integer kind, `bool`, `address`, `hash`/`hash32`, `bytes`, `string`, `coins`, or `timestamp`); any further arguments are forwarded to the callee\'s getter. The expression\'s own type is exactly the expected-type argument, so `externalGet(oracle, "price", "uint64")` has type `uint64`. A depth-limited call chain (`MaxExternalGetDepth`, far smaller than the ordinary intra-contract call-stack limit, since this crosses contracts via real Go-level recursion). Signature: externalGet(target: address, method: string, expectedType: string, ...args): <expectedType>.',
+
+  // Addressing / contract identity.
+  getAddress: 'Returns this contract\'s own address. Signature: getAddress(): address.',
+  address: 'Parses a bech32 address string literal into a constant `address` value at compile time. Signature: address(literal: string): address.',
+  counterfactualAddress: 'Derives the deterministic address a contract WOULD have if deployed with the given `{ code, data, ... }` state-init -- under THIS contract as deployer -- without deploying anything. Purely informational; contrast `autoDeployAddress`, which additionally registers the address so the next send to it auto-deploys the child. Signature: counterfactualAddress(stateInit: { code: Code, data: <struct> }): address.',
+  autoDeployAddress: 'Derives the same deterministic address as `counterfactualAddress`, but additionally marks it so the first internal message sent to that address auto-deploys the child contract with the given `{ code, data }` state-init. Signature: autoDeployAddress(stateInit: { code: Code, data: <struct> }): address.',
+
+  // Balances / coins.
+  getBalance: 'Returns the contract\'s balance. Resolves to the same underlying value as `getOriginalBalance()` (the balance as of the start of this message\'s execution). Signature: getBalance(): coins.',
+  getOriginalBalance: 'Returns the contract\'s balance as captured at the start of this message\'s execution, before any of this execution\'s own sends/receipts mutate it. Signature: getOriginalBalance(): coins.',
+  getAttachedValue: 'Returns the coin amount attached to the currently-executing incoming message. Signature: getAttachedValue(): coins.',
+
+  // Time / randomness.
+  now: 'Current block timestamp (Unix seconds). Deterministic across every validator. Signature: now(): int64.',
+  logicalTime: 'This contract\'s own monotonic call counter -- incremented on every execution. NOT wall-clock time or block height. Signature: logicalTime(): uint64.',
+  currentBlockLogicalTime: 'The logical-time value as of the start of the current block. Signature: currentBlockLogicalTime(): uint64.',
+  random: 'Deterministic block-randomness beacon -- SHA256 over the previous state root, block entropy, the current message, and a per-call domain-separating nonce (so successive calls within one execution differ). Every validator derives the identical value; this is NOT process/OS entropy. Signature: random(): uint256.',
+
+  // Misc scalar / collection.
+  hash: 'Canonical content-addressing hash: canonically encodes the value, then hashes it as a BLAKE3 chunk-tree Merkle root. Distinct from the byte-exact `sha256`/`keccak256`/`blake2b`/`ripemd160`/`sha512` above -- an off-chain verifier without the AVM\'s own chunk encoder cannot reproduce this hash, so use a byte-exact hash instead when matching a foreign digest. Signature: hash(x: any): hash32.',
+  len: 'Generic length of a byte string, string, or map/list-family value. Always emits a real length-read -- never constant-folded. Signature: len(x: bytes | string | Map<K,V> | List<T>): uint64.',
+
+  // Contract-code intrinsics (dotted `contract.` receiver methods -- state-
+  // mutating effects, like setData/deleteData: rejected in @get/@pure unless
+  // the function is annotated @store/@impure).
+  getData: 'Reads this contract\'s raw persistent storage as a `Chunk`. Almost always used inside the canonical `@store func Type.load() { return Type.fromChunk(contract.getData()) }` wrapper rather than called directly. Signature: contract.getData(): Chunk.',
+  setData: 'Writes this contract\'s raw persistent storage from a `Chunk`. Almost always used inside the canonical `@store func Type.save(self) { contract.setData(self.toChunk()) }` wrapper. Mutating. Signature: contract.setData(data: Chunk).',
+  deleteData: 'Clears this contract\'s persistent storage entirely. Mutating. Signature: contract.deleteData().',
+  upgradeCode: 'Swaps this contract\'s own running code for a new compiled module, carried as a `Code` value -- no off-chain step, no code-hash indirection. Only legal as a statement (`contract.upgradeCode(newCode)`), like `setData`/`deleteData`. The swap is recorded during the current message and takes effect on the NEXT message -- this handler still finishes running the OLD code. Signature: contract.upgradeCode(newCode: Code).',
+
+  // Typed decode/encode receiver methods.
+  fromChunk: 'Decodes a typed value (a `@storage` struct, or any struct) from a `Chunk` -- the canonical storage-load path, e.g. `Type.fromChunk(contract.getData())`. Signature: Type.fromChunk(c: Chunk): Type.',
+  toChunk: 'Encodes a typed value into a `Chunk` -- the canonical storage-save path, e.g. `contract.setData(self.toChunk())`. Signature: (self: Type).toChunk(): Chunk.',
+  fromSegment: 'Decodes a typed message/union value from a `Segment` -- the canonical inbound-message decode path, e.g. `const msg = lazy MsgUnion.fromSegment(in.body)`. Signature: Type.fromSegment(s: Segment): Type.',
+  fromState: 'Decodes a typed value from a state-init payload. Signature: Type.fromState(s: <state payload>): Type.',
+  fromHex: 'Constructs a `bytes`/`Code`/`Chunk` value from a hex string literal, decoded at compile time. Signature: Type.fromHex(literal: string): Type.',
+  fromBase64: 'Constructs a `bytes`/`Code`/`Chunk` value from a base64 string literal, decoded at compile time. Signature: Type.fromBase64(literal: string): Type.',
+  isEmpty: 'Reports whether a `Segment`/message body has no remaining/attached data. The canonical guard in an `else` match arm: `assert (in.body.isEmpty()) throw ERR_UNKNOWN_MESSAGE`. Signature: (self: Segment).isEmpty(): bool.',
+  skipBouncedPrefix: 'Skips the leading bytes prepended to a bounced message body before the original opcode+payload. Call this first in `@bounced`, before decoding: `in.bouncedBody.skipBouncedPrefix()`. Signature: (self: Segment).skipBouncedPrefix().',
+  bitsHash: 'Byte-exact hash over the raw encoded bits of a value (distinct from the chunk-tree `hash()`). Signature: (self: T).bitsHash(): hash32.'
 };
 
 // Core language words offered in completion beyond the documented WORD_DOCS
@@ -262,11 +306,19 @@ const LANGUAGE_KEYWORDS = [
 
 // Callable without a receiver — used both for completion and for the
 // "unknown function" diagnostic so builtins never get flagged.
+//
+// This Set (and WORD_DOCS below) is hand-maintained against
+// x/aetravm/compiler/compile.go's `switch strings.ToLower(expr.Text)` inside
+// `inferExprType`'s `case ExprCall` (currently ~lines 2609-3024) — there is no
+// automated sync, so any new compiler builtin must be added here in the same
+// change, or it silently starts tripping Rule 5's "not declared... and is not
+// a recognized builtin" diagnostic (this is exactly what happened to
+// `addressBytes`, added to the compiler without a matching update here).
 const BUILTIN_FUNCTIONS = new Set([
-  'buildMessage', 'counterfactualAddress', 'autoDeployAddress', 'getAddress',
+  'buildMessage', 'wrapMessage', 'counterfactualAddress', 'autoDeployAddress', 'getAddress',
   'getOriginalBalance', 'getAttachedValue', 'getBalance', 'now', 'logicalTime',
-  'currentBlockLogicalTime', 'aet', 'address', 'hash', 'isSignatureValid',
-  'verifySignature', 'len', 'setCodePostponed', 'random',
+  'currentBlockLogicalTime', 'aet', 'address', 'addressBytes', 'hash', 'isSignatureValid',
+  'verifySignature', 'len', 'random', 'ok', 'err',
   // Byte-exact hashes, byte manipulation, full-width math, and signatures
   // (x/aetravm/compiler/compile.go, x/aetravm/avm/avm.go).
   'sha256', 'keccak256', 'ripemd160', 'sha512', 'blake2b',
