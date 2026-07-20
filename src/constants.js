@@ -289,7 +289,7 @@ const BUILTIN_FUNCTIONS = new Set([
 // `slice` and `cell` are deliberately NOT here: neither is a reserved/legacy
 // keyword the compiler actively rejects — `slice` is just a builtin name the
 // compiler no longer recognizes (renamed to `subBytes`), and `cell` was
-// never ATLX syntax at all (it's the underlying TON/FunC term ATLX exposes
+// never ATLX syntax at all (it's the underlying FunC term ATLX exposes
 // as `Chunk` instead). Writing either gets the same plain "not declared /
 // not a recognized builtin" treatment as any other unresolved identifier
 // (Rule 5 in diagnostics.js) — no special warning, no ban — so a contract

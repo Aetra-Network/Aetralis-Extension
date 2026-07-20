@@ -17,7 +17,7 @@ const { maskNonCode, mergedIndex } = require('./symbolIndex');
 //      selector, ...) — not part of the language. NOTE: `slice` and `cell`
 //      are NOT here — `slice` is a builtin whose name simply changed (now
 //      `subBytes`), and `cell` was never ATLX syntax at all (the underlying
-//      TON/FunC term ATLX calls `Chunk` instead); neither is "legacy," both
+//      FunC term ATLX calls `Chunk` instead); neither is "legacy," both
 //      are just unresolved, so they fall through to (5) with a plain "not
 //      declared" message like any other typo, and remain free to be
 //      declared as the name of your own function;
